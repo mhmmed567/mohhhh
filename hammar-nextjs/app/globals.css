@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #f7f6f3;
+  color: #101012;
+}
+
+::selection {
+  background: #b9bec4;
+  color: #101012;
+}
+
+:focus-visible {
+  outline: 1.5px solid #5b5e63;
+  outline-offset: 3px;
+}
+
+/* hairline divider with center diamond, taken from the logo's motif */
+.ornament-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ornament-rule::before,
+.ornament-rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(16, 16, 18, 0.18);
+}
+.ornament-rule .diamond {
+  width: 6px;
+  height: 6px;
+  background: #8b8f95;
+  transform: rotate(45deg);
+  flex: none;
+}
+
+/* hero load sequence */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  opacity: 0;
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.bottle-line {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: draw 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes riseLiquid {
+  to {
+    transform: scaleY(1);
+  }
+}
+.liquid-fill {
+  transform-origin: 60px 200px;
+  transform: scaleY(0);
+  animation: riseLiquid 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 1.5s;
+}
+
+@keyframes bump {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.bump {
+  animation: bump 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .rise,
+  .bottle-line,
+  .liquid-fill {
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}
