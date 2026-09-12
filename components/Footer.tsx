@@ -8,7 +8,7 @@ export function Footer() {
               لديك سؤال قبل الطلب؟
             </h2>
             <a
-              href="https://wa.me/968"
+              href="https://wa.me/96876956605"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-sm border border-lineStrong px-6 py-3 text-sm transition-colors hover:border-silver-dark hover:text-silver-dark"

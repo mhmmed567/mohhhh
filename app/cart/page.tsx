@@ -2,75 +2,63 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { Nav } from "@/components/Nav";
-
-type CartItem = {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  quantity: number;
-  image: string;
-};
-
-const initialItems: CartItem[] = [
-  {
-    id: 1,
-    name: "عطر همار",
-    description: "عطر فاخر بلمسة شرقية",
-    price: 18,
-    quantity: 1,
-    image: "/product-1.jpg",
-  },
-  {
-    id: 2,
-    name: "عطر المسك",
-    description: "رائحة هادئة وفاخرة",
-    price: 15,
-    quantity: 1,
-    image: "/product-2.jpg",
-  },
-];
+import { useEffect, useState } from "react";
+import {
+  CartItem,
+  getCart,
+  removeFromCart,
+  updateCartQuantity,
+} from "@/lib/cart";
 
 export default function CartPage() {
-  const [items, setItems] = useState(initialItems);
+  const [items, setItems] = useState<CartItem[]>([]);
 
-  const increase = (id: number) => {
-    setItems((current) =>
-      current.map((item) =>
-        item.id === id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
-    );
+  useEffect(() => {
+    setItems(getCart());
+
+    const handleCartUpdate = () => {
+      setItems(getCart());
+    };
+
+    window.addEventListener("cart-updated", handleCartUpdate);
+
+    return () => {
+      window.removeEventListener("cart-updated", handleCartUpdate);
+    };
+  }, []);
+
+  const increase = (id: string) => {
+    const item = items.find((item) => item.id === id);
+
+    if (!item) return;
+
+    updateCartQuantity(id, item.quantity + 1);
   };
 
-  const decrease = (id: number) => {
-    setItems((current) =>
-      current
-        .map((item) =>
-          item.id === id
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    );
+  const decrease = (id: string) => {
+    const item = items.find((item) => item.id === id);
+
+    if (!item) return;
+
+    updateCartQuantity(id, item.quantity - 1);
   };
 
-  const removeItem = (id: number) => {
-    setItems((current) =>
-      current.filter((item) => item.id !== id)
-    );
+  const removeItem = (id: string) => {
+    removeFromCart(id);
   };
 
   const subtotal = items.reduce(
-    (total, item) => total + item.price * item.quantity,
+    (total, item) => total + Number(item.price) * item.quantity,
     0
   );
 
   const shipping = subtotal > 0 ? 2 : 0;
   const total = subtotal + shipping;
+
+  const totalQuantity = items.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
 
   return (
     <main
@@ -127,6 +115,7 @@ export default function CartPage() {
 
             <p className="mt-3 max-w-sm text-sm leading-7 text-silver-dark">
               ما عندك أي منتجات في السلة حالياً
+              <br />
               اكتشف مجموعتنا وأضف عطرك المفضل
             </p>
 
@@ -149,7 +138,7 @@ export default function CartPage() {
                 </h2>
 
                 <span className="text-sm text-silver-dark">
-                  {items.length} منتجات
+                  {totalQuantity} منتجات
                 </span>
               </div>
 
@@ -159,33 +148,43 @@ export default function CartPage() {
                     key={item.id}
                     className="flex gap-4 rounded-2xl border border-line bg-paper p-4"
                   >
+
                     {/* Image */}
                     <div className="relative h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-panel">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                      />
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-silver-dark">
+                          بدون صورة
+                        </div>
+                      )}
                     </div>
 
                     {/* Info */}
                     <div className="flex min-w-0 flex-1 flex-col justify-between">
 
                       <div className="flex justify-between gap-3">
-                        <div>
-                          <h3 className="font-display font-bold">
+                        <div className="min-w-0">
+                          <h3 className="truncate font-display font-bold">
                             {item.name}
                           </h3>
 
-                          <p className="mt-1 text-xs text-silver-dark">
+                          <p className="mt-1 line-clamp-2 text-xs text-silver-dark">
                             {item.description}
                           </p>
                         </div>
 
                         <button
+                          type="button"
                           onClick={() => removeItem(item.id)}
-                          className="text-xs text-silver-dark transition-colors hover:text-red-600"
+                          className="shrink-0 text-xs text-silver-dark transition-colors hover:text-red-600"
                         >
                           حذف
                         </button>
@@ -195,9 +194,12 @@ export default function CartPage() {
 
                         {/* Quantity */}
                         <div className="flex items-center overflow-hidden rounded-full border border-lineStrong">
+
                           <button
+                            type="button"
                             onClick={() => decrease(item.id)}
                             className="flex h-8 w-8 items-center justify-center text-lg transition-colors hover:bg-panel"
+                            aria-label="تقليل الكمية"
                           >
                             −
                           </button>
@@ -207,17 +209,20 @@ export default function CartPage() {
                           </span>
 
                           <button
+                            type="button"
                             onClick={() => increase(item.id)}
                             className="flex h-8 w-8 items-center justify-center text-lg transition-colors hover:bg-panel"
+                            aria-label="زيادة الكمية"
                           >
                             +
                           </button>
+
                         </div>
 
                         {/* Price */}
                         <div className="text-left">
                           <span className="font-semibold">
-                            {item.price * item.quantity}
+                            {(Number(item.price) * item.quantity).toFixed(2)}
                           </span>
 
                           <span className="mr-1 text-xs text-silver-dark">
@@ -240,6 +245,16 @@ export default function CartPage() {
               </h2>
 
               <div className="mt-7 space-y-5 text-sm">
+
+                <div className="flex justify-between">
+                  <span className="text-silver-dark">
+                    المنتجات
+                  </span>
+
+                  <span>
+                    {totalQuantity}
+                  </span>
+                </div>
 
                 <div className="flex justify-between">
                   <span className="text-silver-dark">
@@ -275,6 +290,7 @@ export default function CartPage() {
                     </span>
                   </div>
                 </div>
+
               </div>
 
               <Link
@@ -294,6 +310,7 @@ export default function CartPage() {
               <div className="mt-6 rounded-2xl bg-paper p-4 text-center text-xs leading-6 text-silver-dark">
                 الدفع آمن ويتم تأكيد طلبك بعد إتمام عملية الشراء
               </div>
+
             </aside>
           </div>
         )}
@@ -305,6 +322,7 @@ export default function CartPage() {
         >
           ← العودة للمتجر
         </Link>
+
       </div>
     </main>
   );
