@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useSearchParams } from "next/navigation";
 
-export default function CheckoutSuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
 
@@ -54,5 +54,24 @@ export default function CheckoutSuccessPage() {
         </Link>
       </div>
     </main>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <main
+          dir="rtl"
+          className="flex min-h-screen items-center justify-center bg-[#f7f5f0]"
+        >
+          <div className="text-sm text-black/50">
+            جاري تحميل الطلب...
+          </div>
+        </main>
+      }
+    >
+      <SuccessContent />
+    </Suspense>
   );
 }
