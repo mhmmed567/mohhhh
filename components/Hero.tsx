@@ -1,50 +1,38 @@
+"use client";
+
 export function Hero() {
-  return (
-    <section className="mx-auto max-w-6xl px-7 py-24 md:py-28">
-      <div className="text-center md:text-right">
-        <p
-          className="rise mb-4 text-[15px] text-silver-dark"
-          style={{ animationDelay: "0.15s" }}
-        >
-          عطور مصنوعة لتُذكر، لا لتُلاحظ فقط
-        </p>
+return ( <section
+   dir="rtl"
+   className="flex min-h-[calc(100vh-76px)] items-center justify-center bg-[#f7f5f0] px-5 py-16"
+ > <div className="flex w-full max-w-3xl flex-col items-center justify-center text-center">
 
-        <h1
-          className="rise mb-6 font-display text-[42px] font-bold leading-[1.15] md:text-[64px]"
-          style={{ animationDelay: "0.3s" }}
-        >
-          فخامة صامتة،
-          <br />
-          تبقى بعد خروجك من الغرفة
-        </h1>
 
-        <p
-          className="rise mx-auto mb-9 max-w-[44ch] text-[17px] text-silver-dark md:mx-0"
-          style={{ animationDelay: "0.5s" }}
-        >
-          همار مجموعة عطور محدودة، كل زجاجة تُركّب بعناية لتحمل حضورًا هادئًا
-          يليق بمن لا يحتاج أن يرفع صوته ليُلاحظ.
-        </p>
+    <p className="mb-6 text-xs font-medium tracking-[0.35em] text-black/35">
+      HAMMAR PERFUMES
+    </p>
 
-        <div
-          className="rise flex flex-wrap justify-center gap-4 md:justify-start"
-          style={{ animationDelay: "0.68s" }}
-        >
-          <a
-            href="#shop"
-            className="rounded-sm bg-ink px-8 py-3.5 text-[15px] font-medium text-paper transition-all hover:-translate-y-0.5 hover:bg-silver-dark"
-          >
-            تسوّق العطور
-          </a>
+   
 
-          <a
-            href="#story"
-            className="rounded-sm border border-lineStrong px-6 py-3.5 text-[15px] transition-colors hover:border-silver-dark hover:text-silver-dark"
-          >
-            تعرّف على همار
-          </a>
-        </div>
-      </div>
-    </section>
-  );
+    <h1 className="text-5xl font-black leading-[1.15] tracking-tight sm:text-6xl lg:text-7xl">
+      عطر يترك
+      <br />
+      أثرًا لا يُنسى
+    </h1>
+
+    <p className="mt-6 max-w-md text-base leading-8 text-black/50">
+      عطور مختارة بعناية لمن يبحث عن حضور مختلف
+    </p>
+
+    <a
+      href="#shop"
+      className="mt-9 inline-flex rounded-full bg-black px-8 py-4 text-sm font-bold text-white transition duration-300 hover:-translate-y-1 hover:opacity-80"
+    >
+      اكتشف العطور
+    </a>
+
+  </div>
+</section>
+
+
+);
 }
