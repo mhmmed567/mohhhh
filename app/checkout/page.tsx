@@ -337,7 +337,7 @@ return ( <main
                   onChange={(e) =>
                     updateField("name", e.target.value)
                   }
-                  placeholder="مثال: محمد بن علي البلوشي"
+                  placeholder="مثال  : محمد"
                   className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3.5 text-sm outline-none transition focus:border-black"
                 />
               </div>
@@ -354,7 +354,7 @@ return ( <main
                   onChange={(e) =>
                     updateField("phone", e.target.value)
                   }
-                  placeholder="مثال: 99660453"
+                  placeholder="مثال: ********"
                   className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3.5 text-sm outline-none transition focus:border-black"
                 />
               </div>

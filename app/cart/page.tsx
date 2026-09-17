@@ -52,8 +52,8 @@ export default function CartPage() {
     0
   );
 
-  const shipping = subtotal > 0 ? 2 : 0;
-  const total = subtotal + shipping;
+  // الإجمالي بدون رسوم توصيل
+  const total = subtotal;
 
   const totalQuantity = items.reduce(
     (total, item) => total + item.quantity,
@@ -92,7 +92,6 @@ export default function CartPage() {
         </div>
 
         {items.length === 0 ? (
-          /* Empty Cart */
           <div className="flex min-h-[500px] flex-col items-center justify-center rounded-[32px] border border-line bg-panel px-6 text-center">
 
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-ink text-paper">
@@ -263,16 +262,6 @@ export default function CartPage() {
 
                   <span>
                     {subtotal.toFixed(2)} ر.ع
-                  </span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-silver-dark">
-                    التوصيل
-                  </span>
-
-                  <span>
-                    {shipping.toFixed(2)} ر.ع
                   </span>
                 </div>
 
