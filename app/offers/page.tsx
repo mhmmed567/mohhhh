@@ -168,12 +168,13 @@ export default function OffersPage() {
                       )}
 
                       {soldOut && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[1px]">
-                          <div className="rounded-full border border-white/40 bg-black/85 px-5 py-3 text-center text-white shadow-xl">
-                            <p className="text-sm font-black tracking-[0.16em] sm:text-base">
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/15">
+                          <div className="-rotate-12 rounded-lg border-[3px] border-red-600 bg-white/90 px-5 py-2.5 text-center text-red-600 shadow-lg backdrop-blur-sm sm:px-7 sm:py-3">
+                            <p className="text-sm font-black tracking-[0.18em] sm:text-lg">
                               SOLD OUT
                             </p>
-                            <p className="mt-0.5 text-[10px] font-bold text-white/75 sm:text-xs">
+                            <div className="my-1 h-px bg-red-600/50" />
+                            <p className="text-[10px] font-black sm:text-xs">
                               نفد المخزون
                             </p>
                           </div>
