@@ -14,6 +14,7 @@ updateDoc,
 import { onAuthStateChanged } from "firebase/auth";
 
 import { auth, db } from "@/lib/firebase";
+import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/lib/whatsapp";
 
 type OrderItem = {
 productId: string;
@@ -125,7 +126,12 @@ setError("");
       return {
         id: orderDoc.id,
         userId: data.userId ?? "",
-        customer: data.customer ?? {},
+        customer: {
+          name: data.customer?.name ?? data.name ?? "",
+          phone: String(data.customer?.phone || data.phone || ""),
+          address: data.customer?.address ?? data.address ?? "",
+          notes: data.customer?.notes ?? data.notes ?? "",
+        },
         items: Array.isArray(data.items)
           ? data.items
           : [],
@@ -272,23 +278,14 @@ const customerName =
 order.customer?.name || "عميل همار";
 
 
-const customerPhone =
-  order.customer?.phone?.replace(/\D/g, "") || "";
+setError("");
+const whatsappPhone = normalizeWhatsAppPhone(order.customer?.phone);
 
-if (!customerPhone) {
-  setError("لا يوجد رقم هاتف لهذا العميل");
+if (!whatsappPhone) {
+  const errorMessage = "رقم العميل غير موجود أو غير صحيح. أدخل رقمًا عمانيًا من 8 أرقام أو رقمًا دوليًا مع مفتاح الدولة.";
+  setError(errorMessage);
+  window.alert(errorMessage);
   return;
-}
-
-let whatsappPhone = customerPhone;
-
-if (whatsappPhone.startsWith("0")) {
-  whatsappPhone = "968" + whatsappPhone.slice(1);
-} else if (
-  whatsappPhone.length === 8 &&
-  !whatsappPhone.startsWith("968")
-) {
-  whatsappPhone = "968" + whatsappPhone;
 }
 
 const message = `السلام عليكم ${customerName}
@@ -308,11 +305,11 @@ ${92587656}
 همار للعطور`;
 
 
-const whatsappUrl = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(
-  message
-)}`;
+const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const whatsappUrl = buildWhatsAppUrl(whatsappPhone, message, mobile);
 
-window.open(whatsappUrl, "_blank");
+// Navigation in this tab works even when the browser blocks pop-up windows.
+window.location.assign(whatsappUrl);
 
 
 };
