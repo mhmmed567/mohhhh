@@ -21,7 +21,7 @@ export function Footer() {
             <div className="flex flex-col gap-2.5">
               <span className="text-ink">تسوّق</span>
               <a href="#shop" className="hover:text-ink">كل العطور</a>
-              <a href="#story" className="hover:text-ink">قصتنا</a>
+              <a href="/story" className="hover:text-ink">قصتنا</a>
             </div>
             <div className="flex flex-col gap-2.5">
               <span className="text-ink">حسابي</span>

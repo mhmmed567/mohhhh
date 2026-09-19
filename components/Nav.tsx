@@ -110,7 +110,7 @@ export function Nav({ cartCount = 0 }: NavProps) {
             </Link>
 
             <Link
-              href="/#story"
+              href="/story"
               className="text-sm text-black/60 transition hover:text-black"
             >
               قصتنا
@@ -314,7 +314,7 @@ export function Nav({ cartCount = 0 }: NavProps) {
             </Link>
 
             <Link
-              href="/#story"
+              href="/story"
               onClick={closeMobileMenu}
               className="flex items-center justify-between px-2 py-4 text-sm font-medium"
             >
