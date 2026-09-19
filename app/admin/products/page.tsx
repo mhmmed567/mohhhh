@@ -177,9 +177,10 @@ export default function AdminProductsPage() {
         note: form.note.trim(),
         desc: form.desc.trim(),
         stock: form.stock,
+        // المنتج النافد يبقى ظاهرًا في المتجر مع علامة SOLD OUT.
         visible:
           form.stock === "نفد المخزون"
-            ? false
+            ? true
             : form.visible,
       };
 
@@ -711,4 +712,3 @@ export default function AdminProductsPage() {
     </main>
   );
 }
-

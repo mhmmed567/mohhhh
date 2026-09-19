@@ -37,6 +37,10 @@ export const isProductOnSale = (product: Product) => {
   );
 };
 
+export const isProductSoldOut = (
+  product: Pick<Product, "stock">
+) => product.stock?.trim() === "نفد المخزون";
+
 export const defaultProducts: Product[] = [];
 
 export const products = defaultProducts;

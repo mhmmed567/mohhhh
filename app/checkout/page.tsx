@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-addDoc,
 collection,
+doc,
+runTransaction,
 serverTimestamp,
 } from "firebase/firestore";
 
@@ -147,22 +148,67 @@ try {
     updatedAt: serverTimestamp(),
   };
 
-  const orderRef = await addDoc(
-    collection(db, "orders"),
-    orderData
-  );
+  const orderId = await runTransaction(db, async (transaction) => {
+    const productSnapshots = [];
+
+    for (const item of items) {
+      productSnapshots.push(
+        await transaction.get(doc(db, "products", item.id))
+      );
+    }
+
+    const unavailableProducts = productSnapshots
+      .map((snapshot, index) => ({
+        snapshot,
+        item: items[index],
+      }))
+      .filter(({ snapshot }) => {
+        if (!snapshot.exists()) return true;
+
+        const product = snapshot.data();
+
+        return (
+          product.visible === false ||
+          String(product.stock ?? "").trim() === "نفد المخزون"
+        );
+      })
+      .map(({ item }) => item.name);
+
+    if (unavailableProducts.length > 0) {
+      throw new Error(
+        `OUT_OF_STOCK:${unavailableProducts.join("، ")}`
+      );
+    }
+
+    const orderRef = doc(collection(db, "orders"));
+
+    transaction.set(orderRef, orderData);
+
+    return orderRef.id;
+  });
 
   clearCart();
 
   router.replace(
-    `/checkout/success?orderId=${orderRef.id}`
+    `/checkout/success?orderId=${orderId}`
   );
 } catch (err) {
   console.error("Order creation error:", err);
 
-  setError(
-    "تعذر إرسال الطلب. تأكد من اتصال الإنترنت وحاول مرة ثانية."
-  );
+  if (
+    err instanceof Error &&
+    err.message.startsWith("OUT_OF_STOCK:")
+  ) {
+    const names = err.message.replace("OUT_OF_STOCK:", "");
+
+    setError(
+      `عذرًا، نفد مخزون: ${names}. احذفه من السلة ثم أكمل الطلب.`
+    );
+  } else {
+    setError(
+      "تعذر إرسال الطلب. تأكد من اتصال الإنترنت وحاول مرة ثانية."
+    );
+  }
 } finally {
   setSubmitting(false);
 }

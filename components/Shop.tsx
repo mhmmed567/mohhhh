@@ -16,6 +16,7 @@ import {
   Product,
   getProductPrice,
   isProductOnSale,
+  isProductSoldOut,
 } from "@/lib/products";
 
 import { addToCart } from "@/lib/cart";
@@ -71,14 +72,12 @@ export function Shop({
   }, []);
 
   const safeProducts: Product[] = Array.isArray(products)
-    ? products.filter(
-        (product) =>
-          product.visible !== false &&
-          product.stock !== "نفد المخزون"
-      )
+    ? products.filter((product) => product.visible !== false)
     : [];
 
   function handleAddToCart(product: Product) {
+    if (isProductSoldOut(product)) return;
+
     // السعر النهائي
     // إذا عليه عرض يأخذ سعر العرض
     // إذا ما عليه عرض يأخذ السعر الأساسي
@@ -148,6 +147,9 @@ export function Shop({
                 const isAdded =
                   addedProduct === product.id;
 
+                const soldOut =
+                  isProductSoldOut(product);
+
                 // هل المنتج عليه عرض؟
                 const onSale =
                   isProductOnSale(product);
@@ -184,10 +186,24 @@ export function Shop({
                       />
 
                       {/* علامة العرض */}
-                      {onSale && (
+                      {onSale && !soldOut && (
                         <div className="absolute right-3 top-3 z-10">
                           <div className="rounded-full bg-black px-3 py-1.5 text-[10px] font-black text-white shadow-lg sm:text-xs">
                             خصم {discountPercentage}%
+                          </div>
+                        </div>
+                      )}
+
+                      {/* نفد المخزون */}
+                      {soldOut && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/35 backdrop-blur-[1px]">
+                          <div className="rounded-full border border-white/40 bg-black/85 px-5 py-3 text-center text-white shadow-xl">
+                            <p className="text-sm font-black tracking-[0.16em] sm:text-base">
+                              SOLD OUT
+                            </p>
+                            <p className="mt-0.5 text-[10px] font-bold text-white/75 sm:text-xs">
+                              نفد المخزون
+                            </p>
                           </div>
                         </div>
                       )}
@@ -251,14 +267,18 @@ export function Shop({
                           onClick={() =>
                             handleAddToCart(product)
                           }
-                          disabled={isAdded}
+                          disabled={isAdded || soldOut}
                           className={`rounded-full px-3 py-2 text-[10px] font-bold text-white transition-all duration-300 sm:px-4 sm:text-xs ${
-                            isAdded
+                            soldOut
+                              ? "cursor-not-allowed bg-black/25"
+                              : isAdded
                               ? "scale-95 bg-black/60"
                               : "bg-black hover:-translate-y-0.5 hover:opacity-75"
                           }`}
                         >
-                          {isAdded
+                          {soldOut
+                            ? "نفد المخزون"
+                            : isAdded
                             ? "تمت الإضافة ✓"
                             : "أضف"}
                         </button>

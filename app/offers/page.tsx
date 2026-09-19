@@ -16,6 +16,7 @@ import { db } from "@/lib/firebase";
 import {
   getProductPrice,
   isProductOnSale,
+  isProductSoldOut,
   Product,
 } from "@/lib/products";
 
@@ -44,7 +45,6 @@ export default function OffersPage() {
           data.filter(
             (product) =>
               product.visible !== false &&
-              product.stock !== "نفد المخزون" &&
               isProductOnSale(product)
           )
         );
@@ -59,6 +59,8 @@ export default function OffersPage() {
   }, []);
 
   function handleAdd(product: Product) {
+    if (isProductSoldOut(product)) return;
+
     addToCart({
       id: product.id,
       name: product.name,
@@ -134,6 +136,7 @@ export default function OffersPage() {
             <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
               {products.map((product) => {
                 const finalPrice = getProductPrice(product);
+                const soldOut = isProductSoldOut(product);
 
                 const discount = Math.round(
                   ((Number(product.price) - finalPrice) /
@@ -157,9 +160,24 @@ export default function OffersPage() {
                       />
 
                       {/* نسبة الخصم */}
-                      <span className="absolute right-3 top-3 rounded-full bg-black px-3 py-1.5 text-[10px] font-black text-white sm:text-xs">
-                        خصم {discount}%
-                      </span>
+                      {!soldOut && (
+                        <span className="absolute right-3 top-3 rounded-full bg-black px-3 py-1.5 text-[10px] font-black text-white sm:text-xs">
+                          خصم {discount}%
+                        </span>
+                      )}
+
+                      {soldOut && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/35 backdrop-blur-[1px]">
+                          <div className="rounded-full border border-white/40 bg-black/85 px-5 py-3 text-center text-white shadow-xl">
+                            <p className="text-sm font-black tracking-[0.16em] sm:text-base">
+                              SOLD OUT
+                            </p>
+                            <p className="mt-0.5 text-[10px] font-bold text-white/75 sm:text-xs">
+                              نفد المخزون
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="p-3 sm:p-5">
@@ -188,10 +206,12 @@ export default function OffersPage() {
                       <button
                         type="button"
                         onClick={() => handleAdd(product)}
-                        disabled={addedProduct === product.id}
-                        className="mt-4 w-full rounded-full bg-black px-4 py-3 text-xs font-bold text-white transition hover:opacity-75 disabled:bg-black/60"
+                        disabled={soldOut || addedProduct === product.id}
+                        className="mt-4 w-full rounded-full bg-black px-4 py-3 text-xs font-bold text-white transition hover:opacity-75 disabled:cursor-not-allowed disabled:bg-black/25"
                       >
-                        {addedProduct === product.id
+                        {soldOut
+                          ? "نفد المخزون"
+                          : addedProduct === product.id
                           ? "تمت الإضافة ✓"
                           : "أضف للسلة"}
                       </button>
