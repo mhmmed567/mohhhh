@@ -72,7 +72,10 @@ export function Shop({
   }, []);
 
   const safeProducts: Product[] = Array.isArray(products)
-    ? products.filter((product) => product.visible !== false)
+    ? products.filter(
+        (product) =>
+          product.visible !== false || isProductSoldOut(product)
+      )
     : [];
 
   function handleAddToCart(product: Product) {

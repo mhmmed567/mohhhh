@@ -44,7 +44,8 @@ export default function OffersPage() {
         setProducts(
           data.filter(
             (product) =>
-              product.visible !== false &&
+              (product.visible !== false ||
+                isProductSoldOut(product)) &&
               isProductOnSale(product)
           )
         );
