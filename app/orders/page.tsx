@@ -17,6 +17,7 @@ import { auth, db } from "@/lib/firebase";
 import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/lib/whatsapp";
 
 type OrderItem = {
+preOrder?: boolean;
 productId: string;
 name: string;
 description?: string;
@@ -626,6 +627,7 @@ HAMMAR OS </p>
                       <p className="font-bold">
                         {item.name}
                       </p>
+                      {item.preOrder && <p className="mt-1 text-xs font-bold text-amber-800">طلب مسبق — يتوفر قريب</p>}
 
                       <p className="mt-1 text-xs text-black/40">
                         الكمية: {item.quantity}

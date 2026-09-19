@@ -11,6 +11,8 @@ serverTimestamp,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
+import type { DocumentSnapshot, DocumentData } from "firebase/firestore";
+import { isProductComingSoon } from "@/lib/products";
 import { CartItem, clearCart, getCart } from "@/lib/cart";
 
 type FormData = {
@@ -149,7 +151,7 @@ try {
   };
 
   const orderId = await runTransaction(db, async (transaction) => {
-    const productSnapshots = [];
+    const productSnapshots: DocumentSnapshot<DocumentData>[] = [];
 
     for (const item of items) {
       productSnapshots.push(
@@ -182,7 +184,19 @@ try {
 
     const orderRef = doc(collection(db, "orders"));
 
-    transaction.set(orderRef, orderData);
+    const confirmedItems = orderData.items.map((item, index) => ({
+      ...item,
+      preOrder: isProductComingSoon({ stock: String(productSnapshots[index].data()?.stock ?? "") }),
+    }));
+    // Require a fresh cart review if an available item has become a preorder.
+    if (confirmedItems.some((item, index) => item.preOrder && !items[index].preOrder)) {
+      throw new Error("PREORDER_CHANGED");
+    }
+    transaction.set(orderRef, {
+      ...orderData,
+      items: confirmedItems,
+      hasPreOrder: confirmedItems.some((item) => item.preOrder),
+    });
 
     return orderRef.id;
   });
@@ -195,7 +209,9 @@ try {
 } catch (err) {
   console.error("Order creation error:", err);
 
-  if (
+  if (err instanceof Error && err.message === "PREORDER_CHANGED") {
+    setError("أصبح أحد المنتجات متاحًا للطلب المسبق فقط. احذفه من السلة وأضفه مجددًا كطلب مسبق قبل التأكيد.");
+  } else if (
     err instanceof Error &&
     err.message.startsWith("OUT_OF_STOCK:")
   ) {
@@ -502,6 +518,7 @@ return ( <main
                 <p className="font-bold">
                   {item.name}
                 </p>
+                {item.preOrder && <p className="mt-2 text-xs font-bold text-amber-800">طلب مسبق — يتوفر قريب، غير جاهز للشحن الآن</p>}
 
                 <p className="mt-1 text-xs text-black/40">
                   الكمية: {item.quantity}

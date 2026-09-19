@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { ComingSoonStamp } from "@/components/ComingSoonStamp";
+import { isProductComingSoon } from "@/lib/products";
 import { useEffect, useState } from "react";
 import {
   collection,
@@ -95,6 +97,7 @@ export function Shop({
       price: finalPrice,
 
       quantity: 1,
+      preOrder: isProductComingSoon(product),
       image: product.image,
     });
 
@@ -147,6 +150,7 @@ export function Shop({
             <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
 
               {safeProducts.map((product) => {
+                const comingSoon = isProductComingSoon(product);
                 const isAdded =
                   addedProduct === product.id;
 
@@ -189,7 +193,8 @@ export function Shop({
                       />
 
                       {/* علامة العرض */}
-                      {onSale && !soldOut && (
+                      {comingSoon && <ComingSoonStamp />}
+                      {onSale && !soldOut && !comingSoon && (
                         <div className="absolute right-3 top-3 z-10">
                           <div className="rounded-full bg-black px-3 py-1.5 text-[10px] font-black text-white shadow-lg sm:text-xs">
                             خصم {discountPercentage}%
@@ -284,7 +289,7 @@ export function Shop({
                             ? "نفد المخزون"
                             : isAdded
                             ? "تمت الإضافة ✓"
-                            : "أضف"}
+                            : comingSoon ? "طلب مسبق" : "أضف"}
                         </button>
                       </div>
                     </div>

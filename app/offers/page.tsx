@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { ComingSoonStamp } from "@/components/ComingSoonStamp";
+import { isProductComingSoon } from "@/lib/products";
 import { useEffect, useState } from "react";
 import {
   collection,
@@ -71,6 +73,7 @@ export default function OffersPage() {
       price: getProductPrice(product),
 
       quantity: 1,
+      preOrder: isProductComingSoon(product),
       image: product.image,
     });
 
@@ -136,6 +139,7 @@ export default function OffersPage() {
             /* المنتجات */
             <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
               {products.map((product) => {
+                const comingSoon = isProductComingSoon(product);
                 const finalPrice = getProductPrice(product);
                 const soldOut = isProductSoldOut(product);
 
@@ -161,7 +165,8 @@ export default function OffersPage() {
                       />
 
                       {/* نسبة الخصم */}
-                      {!soldOut && (
+                      {comingSoon && <ComingSoonStamp />}
+                      {!soldOut && !comingSoon && (
                         <span className="absolute right-3 top-3 rounded-full bg-black px-3 py-1.5 text-[10px] font-black text-white sm:text-xs">
                           خصم {discount}%
                         </span>
@@ -215,7 +220,7 @@ export default function OffersPage() {
                           ? "نفد المخزون"
                           : addedProduct === product.id
                           ? "تمت الإضافة ✓"
-                          : "أضف للسلة"}
+                          : comingSoon ? "طلب مسبق" : "أضف للسلة"}
                       </button>
                     </div>
                   </article>

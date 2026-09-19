@@ -42,5 +42,7 @@ export const isProductSoldOut = (
 ) => product.stock?.trim() === "نفد المخزون";
 
 export const defaultProducts: Product[] = [];
+export const isProductComingSoon = (product: Pick<Product, "stock">) =>
+  ["متوفر قريبًا", "متوفر قريبا", "متوفر قريب", "طلب مسبق"].includes(product.stock?.trim());
 
 export const products = defaultProducts;

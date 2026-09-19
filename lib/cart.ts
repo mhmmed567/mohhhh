@@ -5,6 +5,7 @@ export type CartItem = {
   price: number;
   quantity: number;
   image: string;
+  preOrder?: boolean;
 };
 
 const CART_KEY = "hammar-cart";
@@ -37,6 +38,7 @@ export function addToCart(product: CartItem) {
 
   if (existing) {
     existing.quantity += 1;
+    existing.preOrder = product.preOrder === true;
   } else {
     items.push({
       ...product,

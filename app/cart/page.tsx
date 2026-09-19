@@ -174,6 +174,7 @@ export default function CartPage() {
                           <h3 className="truncate font-display font-bold">
                             {item.name}
                           </h3>
+                          {item.preOrder && <p className="mt-2 text-xs font-bold text-amber-800">طلب مسبق — يتوفر قريب</p>}
 
                           <p className="mt-1 line-clamp-2 text-xs text-silver-dark">
                             {item.description}

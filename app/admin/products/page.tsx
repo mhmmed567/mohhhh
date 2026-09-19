@@ -476,6 +476,7 @@ export default function AdminProductsPage() {
                 <option value="متوفر قريبًا">
                   متوفر قريبًا
                 </option>
+                <option value="طلب مسبق">طلب مسبق</option>
                 <option value="نفد المخزون">
                   نفد المخزون
                 </option>

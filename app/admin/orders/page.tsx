@@ -23,6 +23,7 @@ type Customer = {
 };
 
 type OrderItem = {
+  preOrder?: boolean;
   productId: string;
   name: string;
   description?: string;
@@ -166,6 +167,7 @@ export default function AdminOrdersPage() {
                 productId: item.productId ?? "",
                 name: item.name ?? "منتج",
                 description: item.description ?? "",
+                preOrder: item.preOrder === true,
                 price: Number(item.price ?? 0),
                 quantity: Number(item.quantity ?? 1),
                 image: item.image ?? "",
@@ -432,6 +434,7 @@ export default function AdminOrdersPage() {
                             <p className="font-semibold">
                               {item.name}
                             </p>
+                            {item.preOrder && <p className="text-xs font-bold text-amber-800">طلب مسبق — يتوفر قريب</p>}
 
                             <p className="text-sm text-gray-500">
                               الكمية: {item.quantity}
@@ -552,6 +555,7 @@ export default function AdminOrdersPage() {
                         <p className="font-semibold">
                           {item.name}
                         </p>
+                        {item.preOrder && <p className="text-xs font-bold text-amber-800">طلب مسبق — يتوفر قريب</p>}
 
                         <p className="mt-1 text-sm text-gray-500">
                           الكمية: {item.quantity}
