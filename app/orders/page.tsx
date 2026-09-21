@@ -14,6 +14,9 @@ updateDoc,
 import { onAuthStateChanged } from "firebase/auth";
 
 import { auth, db } from "@/lib/firebase";
+import { GiftOrderActions } from "@/components/GiftOrderActions";
+import type { GiftDetails } from "@/lib/gifts";
+import { updateOrderStatus } from "@/lib/order-status";
 import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/lib/whatsapp";
 
 type OrderItem = {
@@ -27,6 +30,9 @@ image?: string;
 };
 
 type Order = {
+isGift?: boolean;
+gift?: GiftDetails | null;
+paymentStatus?: string;
 id: string;
 userId: string;
 
@@ -52,6 +58,7 @@ nanoseconds: number;
 };
 
 const statuses = [
+"بانتظار تأكيد التحويل",
 "جديد",
 "قيد التجهيز",
 "تم الشحن",
@@ -126,6 +133,9 @@ setError("");
 
       return {
         id: orderDoc.id,
+        isGift: data.isGift === true,
+        gift: data.gift ?? null,
+        paymentStatus: data.paymentStatus ?? "غير مدفوع",
         userId: data.userId ?? "",
         customer: {
           name: data.customer?.name ?? data.name ?? "",
@@ -168,10 +178,7 @@ setUpdatingId(orderId);
 
 
 try {
-  await updateDoc(doc(db, "orders", orderId), {
-    status,
-    updatedAt: new Date(),
-  });
+  await updateOrderStatus(orderId, status);
 
   setOrders((current) =>
     current.map((order) =>
@@ -194,7 +201,7 @@ try {
   );
 } catch (err) {
   console.error(err);
-  setError("تعذر تحديث حالة الطلب");
+  window.alert(err instanceof Error ? err.message : "تعذر تحديث حالة الطلب");
 } finally {
   setUpdatingId(null);
 }
@@ -275,6 +282,7 @@ return "bg-blue-50 text-blue-600";
 };
 
 const openWhatsApp = (order: Order) => {
+if (order.isGift) return;
 const customerName =
 order.customer?.name || "عميل همار";
 
@@ -495,6 +503,7 @@ HAMMAR OS </p>
                     onClick={() =>
                       openWhatsApp(order)
                     }
+                    style={order.isGift ? { display: "none" } : undefined}
                     className="flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-bold text-white transition hover:scale-[1.02] hover:brightness-95"
                   >
                     <span className="text-base">
@@ -550,6 +559,10 @@ HAMMAR OS </p>
           </div>
 
           <div className="mt-7 rounded-3xl bg-[#f7f5f0] p-5">
+            <GiftOrderActions order={selectedOrder} onPaid={() => {
+              setSelectedOrder((current) => current ? { ...current, paymentStatus: "مدفوع" } : current);
+              loadOrders();
+            }} />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-black/40">
@@ -708,6 +721,7 @@ HAMMAR OS </p>
               onClick={() =>
                 openWhatsApp(selectedOrder)
               }
+              style={selectedOrder.isGift ? { display: "none" } : undefined}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-5 py-4 text-sm font-black text-white transition hover:brightness-95"
             >
               إرسال رسالة واتساب

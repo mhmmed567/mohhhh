@@ -11,6 +11,8 @@ serverTimestamp,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
+import { normalizeWhatsAppPhone } from "@/lib/whatsapp";
+import type { GiftDetails } from "@/lib/gifts";
 import type { DocumentSnapshot, DocumentData } from "firebase/firestore";
 import { isProductComingSoon } from "@/lib/products";
 import { CartItem, clearCart, getCart } from "@/lib/cart";
@@ -28,6 +30,9 @@ const router = useRouter();
 const [items, setItems] = useState<CartItem[]>([]);
 const [loading, setLoading] = useState(true);
 const [submitting, setSubmitting] = useState(false);
+const [isGift, setIsGift] = useState(false);
+const [gift, setGift] = useState<GiftDetails>({ recipientName: "", recipientPhone: "", recipientAddress: "", message: "", hideSender: true });
+const paymentLabel = isGift ? "تحويل مسبق — التأكيد عبر واتساب المرسل" : "الدفع عند الاستلام";
 
 const [step, setStep] = useState<1 | 2>(1);
 
@@ -101,13 +106,18 @@ if (!form.phone.trim()) {
   return;
 }
 
-if (!/^[0-9+\s-]{8,15}$/.test(form.phone.trim())) {
+if (!normalizeWhatsAppPhone(form.phone)) {
   setError("اكتب رقم هاتف صحيح");
   return;
 }
 
-if (!form.address.trim()) {
+if (!isGift && !form.address.trim()) {
   setError("اكتب عنوانك");
+  return;
+}
+
+if (isGift && (!gift.recipientName.trim() || !normalizeWhatsAppPhone(gift.recipientPhone) || !gift.recipientAddress.trim())) {
+  setError("أكمل اسم مستلم الهدية ورقم هاتف صحيح وعنوان التوصيل.");
   return;
 }
 
@@ -121,11 +131,19 @@ setSubmitting(true);
 try {
   const orderData = {
     userId: null,
+    isGift,
+    gift: isGift ? {
+      recipientName: gift.recipientName.trim(),
+      recipientPhone: normalizeWhatsAppPhone(gift.recipientPhone)!,
+      recipientAddress: gift.recipientAddress.trim(),
+      message: gift.message.trim(),
+      hideSender: gift.hideSender,
+    } : null,
 
     customer: {
       name: form.name.trim(),
-      phone: form.phone.trim(),
-      address: form.address.trim(),
+      phone: normalizeWhatsAppPhone(form.phone)!,
+      address: isGift ? gift.recipientAddress.trim() : form.address.trim(),
       notes: form.notes.trim(),
     },
 
@@ -141,10 +159,10 @@ try {
     subtotal: Number(subtotal),
     total: Number(total),
 
-    paymentMethod: "الدفع عند الاستلام",
-    paymentStatus: "غير مدفوع",
+    paymentMethod: isGift ? "تحويل مسبق" : "الدفع عند الاستلام",
+    paymentStatus: isGift ? "بانتظار تأكيد التحويل" : "غير مدفوع",
 
-    status: "جديد",
+    status: isGift ? "بانتظار تأكيد التحويل" : "جديد",
 
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -204,7 +222,7 @@ try {
   clearCart();
 
   router.replace(
-    `/checkout/success?orderId=${orderId}`
+    `/checkout/success?orderId=${orderId}${isGift ? "&gift=1" : ""}`
   );
 } catch (err) {
   console.error("Order creation error:", err);
@@ -319,6 +337,11 @@ return ( <main
             <h2 className="text-xl font-bold">
               طريقة الدفع
             </h2>
+            <label className="mt-6 flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-black/20 p-4">
+              <input type="checkbox" checked={isGift} onChange={(e) => setIsGift(e.target.checked)} className="h-5 w-5 accent-black" />
+              هذا الطلب هدية
+            </label>
+            {isGift && <p className="mt-3 text-sm leading-7 text-black/70">سنتواصل معك عبر واتساب لتأكيد الطلب والتحويل. الإهداء يتطلب الدفع مسبقًا؛ المستلم لن يدفع شيئًا.</p>}
 
             <p className="mt-1 text-sm text-black/40">
               اختر طريقة الدفع المناسبة لك
@@ -332,11 +355,11 @@ return ( <main
 
                 <div>
                   <p className="font-bold">
-                    الدفع عند الاستلام
+                    {paymentLabel}
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-black/45">
-                    ادفع قيمة طلبك نقدًا عند استلام العطور.
+                    {isGift ? "نرسل بيانات التحويل إلى رقم المرسل فقط، ثم نجهّز الهدية بعد تأكيد وصول المبلغ." : "ادفع قيمة طلبك نقدًا عند استلام العطور."}
                   </p>
                 </div>
               </div>
@@ -390,7 +413,7 @@ return ( <main
             <div className="mt-7 space-y-5">
               <div>
                 <label className="mb-2 block text-sm font-semibold">
-                  الاسم الكامل
+                  {isGift ? "اسم المرسل (صاحب الطلب)" : "الاسم الكامل"}
                 </label>
 
                 <input
@@ -406,7 +429,7 @@ return ( <main
 
               <div>
                 <label className="mb-2 block text-sm font-semibold">
-                  رقم الهاتف
+                  {isGift ? "واتساب المرسل — لتأكيد الطلب والتحويل" : "رقم الهاتف"}
                 </label>
 
                 <input
@@ -421,7 +444,7 @@ return ( <main
                 />
               </div>
 
-              <div>
+              <div hidden={isGift}>
                 <label className="mb-2 block text-sm font-semibold">
                   العنوان
                 </label>
@@ -464,13 +487,36 @@ return ( <main
             )}
 
             <div className="mt-7 rounded-2xl bg-[#f7f5f0] p-4">
+              {isGift && (
+                <fieldset className="mb-6 space-y-4">
+                  <legend className="mb-4 font-bold">بيانات مستلم الهدية</legend>
+                  {([
+                    ["recipientName", "اسم المستلم"],
+                    ["recipientPhone", "رقم المستلم — للتوصيل فقط"],
+                    ["recipientAddress", "عنوان توصيل الهدية"],
+                  ] as const).map(([field, label]) => (
+                    <label key={field} className="block text-sm font-semibold">
+                      {label}
+                      <input required type={field === "recipientPhone" ? "tel" : "text"} value={gift[field]} onChange={(e) => setGift((current) => ({ ...current, [field]: e.target.value }))} className="mt-2 min-h-11 w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-base focus:outline-2 focus:outline-black" />
+                    </label>
+                  ))}
+                  <label className="block text-sm font-semibold">رسالة بطاقة الإهداء (اختياري)
+                    <textarea maxLength={500} rows={3} value={gift.message} onChange={(e) => setGift((current) => ({ ...current, message: e.target.value }))} className="mt-2 w-full rounded-xl border border-black/20 bg-white p-3 text-base" />
+                  </label>
+                  <label className="flex min-h-11 items-center gap-3 text-sm">
+                    <input type="checkbox" checked={gift.hideSender} onChange={(e) => setGift((current) => ({ ...current, hideSender: e.target.checked }))} className="h-5 w-5 accent-black" />
+                    هدية بدون اسم — إخفاء اسم المرسل عن المستلم
+                  </label>
+                  <p className="text-sm leading-7 text-black/70">راجع رسالة البطاقة ولا تكتب اسمك فيها إذا أردت إخفاءه. فاتورة الأسعار وبيانات التحويل تخص المرسل فقط.</p>
+                </fieldset>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-black/45">
                   طريقة الدفع
                 </span>
 
                 <span className="text-sm font-bold">
-                  الدفع عند الاستلام
+                  {paymentLabel}
                 </span>
               </div>
             </div>
@@ -566,7 +612,7 @@ return ( <main
           </p>
 
           <p className="mt-1 text-sm font-bold">
-            الدفع عند الاستلام
+            {paymentLabel}
           </p>
         </div>
       </aside>

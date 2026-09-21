@@ -14,6 +14,9 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 
 import { auth, db } from "@/lib/firebase";
+import { GiftOrderActions } from "@/components/GiftOrderActions";
+import type { GiftDetails } from "@/lib/gifts";
+import { updateOrderStatus } from "@/lib/order-status";
 
 type Customer = {
   name: string;
@@ -33,6 +36,8 @@ type OrderItem = {
 };
 
 type Order = {
+  isGift?: boolean;
+  gift?: GiftDetails | null;
   id: string;
   userId?: string | null;
 
@@ -56,6 +61,7 @@ type Order = {
 };
 
 const statuses = [
+  "بانتظار تأكيد التحويل",
   "قيد المراجعة",
   "تم التأكيد",
   "جاري التجهيز",
@@ -161,6 +167,8 @@ export default function AdminOrdersPage() {
               : null,
 
           customer,
+          isGift: data.isGift === true,
+          gift: data.gift ?? null,
 
           items: Array.isArray(data.items)
             ? data.items.map((item: any) => ({
@@ -201,10 +209,7 @@ export default function AdminOrdersPage() {
 
   async function changeStatus(orderId: string, status: string) {
     try {
-      await updateDoc(doc(db, "orders", orderId), {
-        status,
-        updatedAt: new Date(),
-      });
+      await updateOrderStatus(orderId, status);
 
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
@@ -221,7 +226,7 @@ export default function AdminOrdersPage() {
       );
     } catch (error) {
       console.error("Change status error:", error);
-      alert("حدث خطأ أثناء تحديث حالة الطلب");
+      alert(error instanceof Error ? error.message : "حدث خطأ أثناء تحديث حالة الطلب");
     }
   }
 
@@ -486,6 +491,10 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* بيانات العميل */}
+            <GiftOrderActions order={selectedOrder} onPaid={() => {
+              setSelectedOrder((current) => current ? { ...current, paymentStatus: "مدفوع" } : current);
+              loadOrders();
+            }} />
             <section className="mb-6 rounded-2xl bg-gray-50 p-5">
               <h3 className="mb-4 text-lg font-bold">
                 بيانات العميل

@@ -13,6 +13,9 @@ updateDoc,
 doc,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { updateOrderStatus } from "@/lib/order-status";
+import { GiftOrderActions } from "@/components/GiftOrderActions";
+import type { GiftDetails } from "@/lib/gifts";
 
 type OrderItem = {
 name?: string;
@@ -21,6 +24,10 @@ price?: number;
 };
 
 type Order = {
+isGift?: boolean;
+gift?: GiftDetails | null;
+customer?: { name?: string; phone?: string };
+paymentStatus?: string;
 id: string;
 userId?: string;
 customerName?: string;
@@ -150,9 +157,7 @@ try {
 setUpdatingOrder(orderId);
 
 
-  await updateDoc(doc(db, "orders", orderId), {
-    status: newStatus,
-  });
+  await updateOrderStatus(orderId, newStatus);
 
   setOrders((currentOrders) =>
     currentOrders.map((order) =>
@@ -163,7 +168,7 @@ setUpdatingOrder(orderId);
   );
 } catch (error) {
   console.error("Error updating order:", error);
-  alert("حدث خطأ أثناء تحديث حالة الطلب");
+  alert(error instanceof Error ? error.message : "حدث خطأ أثناء تحديث حالة الطلب");
 } finally {
   setUpdatingOrder(null);
 }
@@ -659,6 +664,7 @@ return ( <main
                 className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm"
               >
                 <div className="p-5 md:p-8">
+                  <GiftOrderActions order={order} onPaid={loadOrders} />
                   {/* ORDER HEADER */}
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div>
