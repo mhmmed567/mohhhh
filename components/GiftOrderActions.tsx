@@ -56,7 +56,16 @@ export function GiftOrderActions({ order, onPaid }: { order: GiftOrder; onPaid: 
       <div className="flex flex-wrap gap-3">
         <button type="button" className="min-h-11 rounded-xl bg-black px-4 py-3 text-sm text-white" onClick={() => open(order.customer?.phone, paid
           ? `السلام عليكم ${order.customer?.name || ""}، تم تأكيد تحويل طلب الهدية #${order.id} من همّار. شكرًا لك.`
-          : `السلام عليكم ${order.customer?.name || ""}، استلمنا طلب الهدية #${order.id} من همّار. المبلغ: ${Number(order.total || 0).toFixed(3)} ر.ع. يرجى التحويل على الرقم 92587656 وإرسال الإيصال هنا. لن يُطلب أي مبلغ من مستلم الهدية، وسنجهّزها بعد التحقق من وصول التحويل.`)}>
+          : `همّار | HAMMAR
+
+السلام عليكم ${order.customer?.name || "عميل همّار"}،
+استلمنا طلب الإهداء، وشكرًا لاختيارك همّار.
+
+المبلغ: ${Number(order.total || 0).toFixed(3)} ر.ع
+رقم التحويل: 92587656
+
+أرسل الإيصال هنا لنؤكد وصول المبلغ ونكمل طلبك.
+لن يُطلب من مستلم الهدية دفع أي مبلغ، وسنلتزم باختيارك بشأن إظهار اسمك أو إخفائه.`)}>
           واتساب المرسل — {paid ? "تأكيد الدفع" : "تأكيد وتحويل"}
         </button>
         <button type="button" disabled={!paid} className="min-h-11 rounded-xl border border-black/20 px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { if (paid) open(gift.recipientPhone, giftDeliveryMessage(gift, order.customer?.name || "")); }}>
