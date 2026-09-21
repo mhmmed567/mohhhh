@@ -136,8 +136,8 @@ try {
       recipientName: gift.recipientName.trim(),
       recipientPhone: normalizeWhatsAppPhone(gift.recipientPhone)!,
       recipientAddress: gift.recipientAddress.trim(),
-      message: gift.message.trim(),
-      hideSender: gift.hideSender,
+      message: "",
+      hideSender: true,
     } : null,
 
     customer: {
@@ -500,14 +500,6 @@ return ( <main
                       <input required type={field === "recipientPhone" ? "tel" : "text"} value={gift[field]} onChange={(e) => setGift((current) => ({ ...current, [field]: e.target.value }))} className="mt-2 min-h-11 w-full rounded-xl border border-black/20 bg-white px-4 py-3 text-base focus:outline-2 focus:outline-black" />
                     </label>
                   ))}
-                  <label className="block text-sm font-semibold">رسالة بطاقة الإهداء (اختياري)
-                    <textarea maxLength={500} rows={3} value={gift.message} onChange={(e) => setGift((current) => ({ ...current, message: e.target.value }))} className="mt-2 w-full rounded-xl border border-black/20 bg-white p-3 text-base" />
-                  </label>
-                  <label className="flex min-h-11 items-center gap-3 text-sm">
-                    <input type="checkbox" checked={gift.hideSender} onChange={(e) => setGift((current) => ({ ...current, hideSender: e.target.checked }))} className="h-5 w-5 accent-black" />
-                    هدية بدون اسم — إخفاء اسم المرسل عن المستلم
-                  </label>
-                  <p className="text-sm leading-7 text-black/70">راجع رسالة البطاقة ولا تكتب اسمك فيها إذا أردت إخفاءه. فاتورة الأسعار وبيانات التحويل تخص المرسل فقط.</p>
                 </fieldset>
               )}
               <div className="flex items-center justify-between">
