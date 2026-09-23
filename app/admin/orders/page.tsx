@@ -9,14 +9,14 @@ import {
   getDocs,
   orderBy,
   query,
-  updateDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 import { auth, db } from "@/lib/firebase";
 import { GiftOrderActions } from "@/components/GiftOrderActions";
 import type { GiftDetails } from "@/lib/gifts";
-import { updateOrderStatus } from "@/lib/order-status";
+import { OrderStatusActions } from "@/components/OrderStatusActions";
+import { getOrderStatus, type OrderStatusUpdate } from "@/lib/order-workflow";
 
 type Customer = {
   name: string;
@@ -60,15 +60,6 @@ type Order = {
   } | null;
 };
 
-const statuses = [
-  "بانتظار تأكيد التحويل",
-  "قيد المراجعة",
-  "تم التأكيد",
-  "جاري التجهيز",
-  "تم الشحن",
-  "تم التوصيل",
-  "ملغي",
-];
 
 export default function AdminOrdersPage() {
   const router = useRouter();
@@ -207,28 +198,10 @@ export default function AdminOrdersPage() {
     }
   }
 
-  async function changeStatus(orderId: string, status: string) {
-    try {
-      await updateOrderStatus(orderId, status);
-
-      setOrders((currentOrders) =>
-        currentOrders.map((order) =>
-          order.id === orderId
-            ? { ...order, status }
-            : order
-        )
-      );
-
-      setSelectedOrder((current) =>
-        current && current.id === orderId
-          ? { ...current, status }
-          : current
-      );
-    } catch (error) {
-      console.error("Change status error:", error);
-      alert(error instanceof Error ? error.message : "حدث خطأ أثناء تحديث حالة الطلب");
-    }
-  }
+function applyStatusUpdate(orderId: string, update: OrderStatusUpdate) {
+  setOrders((current) => current.map((order) => order.id === orderId ? { ...order, ...update } : order));
+  setSelectedOrder((current) => current?.id === orderId ? { ...current, ...update } : current);
+}
 
   async function deleteOrder(orderId: string) {
     const confirmed = confirm(
@@ -345,25 +318,7 @@ export default function AdminOrdersPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <select
-                      value={order.status}
-                      onChange={(e) =>
-                        changeStatus(
-                          order.id,
-                          e.target.value
-                        )
-                      }
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none"
-                    >
-                      {statuses.map((status) => (
-                        <option
-                          key={status}
-                          value={status}
-                        >
-                          {status}
-                        </option>
-                      ))}
-                    </select>
+                    <span className={`rounded-full border px-4 py-2 text-sm ${getOrderStatus(order.status).className}`}>{getOrderStatus(order.status).label}</span>
 
                     <button
                       onClick={() =>
@@ -491,10 +446,7 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* بيانات العميل */}
-            <GiftOrderActions order={selectedOrder} onPaid={() => {
-              setSelectedOrder((current) => current ? { ...current, paymentStatus: "مدفوع" } : current);
-              loadOrders();
-            }} />
+            <GiftOrderActions order={selectedOrder} />
             <section className="mb-6 rounded-2xl bg-gray-50 p-5">
               <h3 className="mb-4 text-lg font-bold">
                 بيانات العميل
@@ -644,29 +596,7 @@ export default function AdminOrdersPage() {
 
             {/* الحالة */}
             <div className="mb-4">
-              <label className="mb-2 block text-sm font-semibold">
-                حالة الطلب
-              </label>
-
-              <select
-                value={selectedOrder.status}
-                onChange={(e) =>
-                  changeStatus(
-                    selectedOrder.id,
-                    e.target.value
-                  )
-                }
-                className="w-full rounded-xl border border-gray-200 bg-white p-3 outline-none"
-              >
-                {statuses.map((status) => (
-                  <option
-                    key={status}
-                    value={status}
-                  >
-                    {status}
-                  </option>
-                ))}
-              </select>
+              <OrderStatusActions order={selectedOrder} onUpdated={applyStatusUpdate} />
             </div>
 
             {/* حذف */}
