@@ -32,6 +32,11 @@ export default function CartPage() {
 
     if (!item) return;
 
+    if (
+      typeof item.maxQuantity === "number" &&
+      item.quantity >= item.maxQuantity
+    ) return;
+
     updateCartQuantity(id, item.quantity + 1);
   };
 
@@ -211,7 +216,11 @@ export default function CartPage() {
                           <button
                             type="button"
                             onClick={() => increase(item.id)}
-                            className="flex h-8 w-8 items-center justify-center text-lg transition-colors hover:bg-panel"
+                            disabled={
+                              typeof item.maxQuantity === "number" &&
+                              item.quantity >= item.maxQuantity
+                            }
+                            className="flex h-8 w-8 items-center justify-center text-lg transition-colors hover:bg-panel disabled:cursor-not-allowed disabled:opacity-30"
                             aria-label="زيادة الكمية"
                           >
                             +

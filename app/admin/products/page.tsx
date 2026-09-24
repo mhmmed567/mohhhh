@@ -26,6 +26,7 @@ type Product = {
   note: string;
   desc: string;
   stock: string;
+  quantity: number | null;
   visible: boolean;
   createdAt?: unknown;
 };
@@ -37,6 +38,7 @@ const emptyProduct = {
   note: "",
   desc: "",
   stock: "متوفر",
+  quantity: "",
   visible: true,
 };
 
@@ -99,6 +101,13 @@ export default function AdminProductsPage() {
           note: product.note ?? "",
           desc: product.desc ?? "",
           stock: product.stock ?? "متوفر",
+          quantity:
+            product.quantity !== null &&
+            product.quantity !== undefined &&
+            Number.isInteger(Number(product.quantity)) &&
+            Number(product.quantity) >= 0
+              ? Number(product.quantity)
+              : null,
           visible: product.visible !== false,
           createdAt: product.createdAt,
         };
@@ -137,6 +146,10 @@ export default function AdminProductsPage() {
       note: product.note,
       desc: product.desc,
       stock: product.stock,
+      quantity:
+        product.quantity === null
+          ? ""
+          : String(product.quantity),
       visible: product.visible,
     });
 
@@ -167,6 +180,16 @@ export default function AdminProductsPage() {
       return;
     }
 
+    const quantity = Number(form.quantity);
+    if (
+      form.quantity === "" ||
+      !Number.isInteger(quantity) ||
+      quantity < 0
+    ) {
+      alert("اكتب كمية صحيحة تبدأ من صفر");
+      return;
+    }
+
     try {
       setSaving(true);
 
@@ -176,10 +199,16 @@ export default function AdminProductsPage() {
         image: form.image.trim(),
         note: form.note.trim(),
         desc: form.desc.trim(),
-        stock: form.stock,
+        quantity,
+        stock:
+          quantity === 0
+            ? "نفد المخزون"
+            : form.stock === "نفد المخزون"
+              ? "متوفر"
+              : form.stock,
         // المنتج النافد يبقى ظاهرًا في المتجر مع علامة SOLD OUT.
         visible:
-          form.stock === "نفد المخزون"
+          quantity === 0 || form.stock === "نفد المخزون"
             ? true
             : form.visible,
       };
@@ -483,6 +512,29 @@ export default function AdminProductsPage() {
               </select>
             </div>
 
+            {/* QUANTITY */}
+            <div>
+              <label className="mb-2 block text-sm font-bold">
+                الكمية المتوفرة
+              </label>
+
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.quantity}
+                onChange={(e) =>
+                  handleChange("quantity", e.target.value)
+                }
+                placeholder="مثال: 12"
+                className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-3.5 outline-none transition focus:border-black"
+              />
+
+              <p className="mt-2 text-xs text-gray-400">
+                تُخصم الكمية عند تأكيد التحويل، وعند وصولها إلى صفر يظهر العطر SOLD OUT تلقائيًا.
+              </p>
+            </div>
+
             {/* DESCRIPTION */}
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-bold">
@@ -659,12 +711,19 @@ export default function AdminProductsPage() {
                     <div className="mt-5 flex items-center justify-between">
                       <span
                         className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-                          product.stock === "نفد المخزون"
+                          product.stock === "نفد المخزون" ||
+                          product.quantity === 0
                             ? "bg-red-50 text-red-600"
                             : "bg-green-50 text-green-700"
                         }`}
                       >
                         {product.stock}
+                      </span>
+
+                      <span className="text-xs font-bold text-gray-600">
+                        {product.quantity === null
+                          ? "الكمية غير محددة"
+                          : `المتبقي: ${product.quantity}`}
                       </span>
 
                       <span

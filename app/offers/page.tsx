@@ -17,6 +17,7 @@ import { addToCart } from "@/lib/cart";
 import { db } from "@/lib/firebase";
 import {
   getProductPrice,
+  getInventoryQuantity,
   isProductOnSale,
   isProductSoldOut,
   Product,
@@ -64,7 +65,7 @@ export default function OffersPage() {
   function handleAdd(product: Product) {
     if (isProductSoldOut(product)) return;
 
-    addToCart({
+    const added = addToCart({
       id: product.id,
       name: product.name,
       description: product.desc,
@@ -73,9 +74,12 @@ export default function OffersPage() {
       price: getProductPrice(product),
 
       quantity: 1,
+      maxQuantity: getInventoryQuantity(product.quantity),
       preOrder: isProductComingSoon(product),
       image: product.image,
     });
+
+    if (!added) return;
 
     setCartCount((count) => count + 1);
 
@@ -142,6 +146,7 @@ export default function OffersPage() {
                 const comingSoon = isProductComingSoon(product);
                 const finalPrice = getProductPrice(product);
                 const soldOut = isProductSoldOut(product);
+                const availableQuantity = getInventoryQuantity(product.quantity);
 
                 const discount = Math.round(
                   ((Number(product.price) - finalPrice) /
@@ -195,6 +200,12 @@ export default function OffersPage() {
                       {product.note && (
                         <p className="mt-1 truncate text-[11px] text-black/40 sm:text-sm">
                           {product.note}
+                        </p>
+                      )}
+
+                      {availableQuantity !== null && !soldOut && (
+                        <p className="mt-1 text-[10px] font-medium text-black/45 sm:text-xs">
+                          متبقي {availableQuantity} فقط
                         </p>
                       )}
 

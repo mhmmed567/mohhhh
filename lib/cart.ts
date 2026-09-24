@@ -6,6 +6,7 @@ export type CartItem = {
   quantity: number;
   image: string;
   preOrder?: boolean;
+  maxQuantity?: number | null;
 };
 
 const CART_KEY = "hammar-cart";
@@ -37,8 +38,18 @@ export function addToCart(product: CartItem) {
   );
 
   if (existing) {
-    existing.quantity += 1;
+    if (
+      typeof product.maxQuantity === "number" &&
+      existing.quantity >= product.maxQuantity
+    ) return false;
+
+    const requestedQuantity = existing.quantity + 1;
+    existing.quantity =
+      typeof product.maxQuantity === "number"
+        ? Math.min(requestedQuantity, product.maxQuantity)
+        : requestedQuantity;
     existing.preOrder = product.preOrder === true;
+    existing.maxQuantity = product.maxQuantity;
   } else {
     items.push({
       ...product,
@@ -47,6 +58,7 @@ export function addToCart(product: CartItem) {
   }
 
   saveCart(items);
+  return true;
 }
 
 export function removeFromCart(id: string) {
@@ -64,7 +76,13 @@ export function updateCartQuantity(
   const items = getCart()
     .map((item) =>
       item.id === id
-        ? { ...item, quantity }
+        ? {
+            ...item,
+            quantity:
+              typeof item.maxQuantity === "number"
+                ? Math.min(quantity, item.maxQuantity)
+                : quantity,
+          }
         : item
     )
     .filter((item) => item.quantity > 0);

@@ -18,8 +18,17 @@ function loadTs(file, dependencies = {}) {
   return exports;
 }
 const workflow = loadTs("lib/order-workflow.ts");
+const productHelpers = loadTs("lib/products.ts");
 const { normalizeOrderStatus, getOrderStatus, planOrderStatusUpdate, buildOrderMessage } = workflow;
 const order = { id: "TEST-42", customer: { name: "عميل تجريبي", phone: "96890000000" }, total: 12.5, status: "بانتظار التحويل", paymentStatus: "غير مدفوع", paymentMethod: "تحويل مسبق" };
+
+test("numeric inventory marks a product sold out at zero", () => {
+  assert.equal(productHelpers.isProductSoldOut({ stock: "متوفر", quantity: 1 }), false);
+  assert.equal(productHelpers.isProductSoldOut({ stock: "متوفر", quantity: 0 }), true);
+  assert.equal(productHelpers.isProductSoldOut({ stock: "نفد المخزون" }), true);
+  assert.equal(productHelpers.getInventoryQuantity("3"), 3);
+  assert.equal(productHelpers.getInventoryQuantity(-1), null);
+});
 
 test("legacy states remain readable without treating preparation as payment", () => {
   for (const value of ["pending", "جديد", "بانتظار تأكيد التحويل"]) assert.equal(normalizeOrderStatus(value), "بانتظار التحويل");
@@ -87,17 +96,27 @@ test("gift billing messages address sender and preserve recipient privacy", () =
   assert.match(buildOrderMessage({ ...giftOrder, status: "تم التسليم" }), /تم تسليم هديتك/);
 });
 
-function databaseFixture(data, exists = true, fail = false) {
+function databaseFixture(data, exists = true, fail = false, products = {}) {
   const writes = [];
   const module = loadTs("lib/order-status.ts", {
     "./order-workflow": workflow,
+    "./products": productHelpers,
     "@/lib/firebase": { db: {} },
     "firebase/firestore": {
       doc: (_, collection, id) => ({ collection, id }),
       serverTimestamp: () => "SERVER_TIME",
       runTransaction: async (_, callback) => {
         if (fail) throw new Error("permission-denied");
-        return callback({ get: async () => ({ exists: () => exists, data: () => data }), update: (ref, update) => writes.push({ ref, update }) });
+        return callback({
+          get: async (ref) => {
+            if (ref.collection === "orders") {
+              return { exists: () => exists, data: () => data };
+            }
+            const product = products[ref.id];
+            return { exists: () => product !== undefined, data: () => product };
+          },
+          update: (ref, update) => writes.push({ ref, update }),
+        });
       },
     },
   });
@@ -133,4 +152,38 @@ test("orders without a historical state can still be updated", async () => {
   const db = databaseFixture({ paymentStatus: "غير مدفوع" });
   await db.updateOrderStatus(order.id, "تم التحويل", true, "جديد");
   assert.equal(db.writes.length, 1);
+});
+
+test("confirming payment deducts tracked inventory and marks sold out", async () => {
+  const trackedOrder = {
+    ...order,
+    items: [{ productId: "P1", name: "عطر تجريبي", quantity: 2 }],
+  };
+  const db = databaseFixture(trackedOrder, true, false, {
+    P1: { quantity: 2, stock: "متوفر" },
+  });
+
+  await db.updateOrderStatus(order.id, "تم التحويل", true, order.status);
+
+  const productWrite = db.writes.find((write) => write.ref.collection === "products");
+  const orderWrite = db.writes.find((write) => write.ref.collection === "orders");
+  assert.equal(productWrite.update.quantity, 0);
+  assert.equal(productWrite.update.stock, "نفد المخزون");
+  assert.equal(orderWrite.update.inventoryAdjustedAt, "SERVER_TIME");
+});
+
+test("payment confirmation refuses inventory below the ordered quantity", async () => {
+  const trackedOrder = {
+    ...order,
+    items: [{ productId: "P1", name: "عطر تجريبي", quantity: 2 }],
+  };
+  const db = databaseFixture(trackedOrder, true, false, {
+    P1: { quantity: 1, stock: "متوفر" },
+  });
+
+  await assert.rejects(
+    db.updateOrderStatus(order.id, "تم التحويل", true, order.status),
+    /لا تكفي/
+  );
+  assert.equal(db.writes.length, 0);
 });

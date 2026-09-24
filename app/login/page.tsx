@@ -206,27 +206,6 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div className="my-8 flex items-center gap-4">
-              <div className="h-px flex-1 bg-line" />
-              <span className="text-xs text-silver-dark">
-                أو
-              </span>
-              <div className="h-px flex-1 bg-line" />
-            </div>
-
-            <div className="text-center">
-              <p className="text-sm text-silver-dark">
-                ما عندك حساب؟
-              </p>
-
-              <Link
-                href="/register"
-                className="mt-2 inline-block text-sm font-semibold underline underline-offset-4"
-              >
-                إنشاء حساب جديد
-              </Link>
-            </div>
-
             <Link
               href="/"
               className="mt-8 block text-center text-xs text-silver-dark transition hover:text-ink"

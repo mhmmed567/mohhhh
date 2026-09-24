@@ -16,6 +16,7 @@ import { db } from "@/lib/firebase";
 import {
   defaultProducts,
   Product,
+  getInventoryQuantity,
   getProductPrice,
   isProductOnSale,
   isProductSoldOut,
@@ -88,7 +89,7 @@ export function Shop({
     // إذا ما عليه عرض يأخذ السعر الأساسي
     const finalPrice = getProductPrice(product);
 
-    addToCart({
+    const added = addToCart({
       id: product.id,
       name: product.name,
       description: product.desc,
@@ -97,9 +98,12 @@ export function Shop({
       price: finalPrice,
 
       quantity: 1,
+      maxQuantity: getInventoryQuantity(product.quantity),
       preOrder: isProductComingSoon(product),
       image: product.image,
     });
+
+    if (!added) return;
 
     onAddToCart();
 
@@ -156,6 +160,8 @@ export function Shop({
 
                 const soldOut =
                   isProductSoldOut(product);
+                const availableQuantity =
+                  getInventoryQuantity(product.quantity);
 
                 // هل المنتج عليه عرض؟
                 const onSale =
@@ -237,6 +243,12 @@ export function Shop({
                       {product.note && (
                         <p className="mt-1 truncate text-[11px] text-black/40 sm:text-sm">
                           {product.note}
+                        </p>
+                      )}
+
+                      {availableQuantity !== null && !soldOut && (
+                        <p className="mt-1 text-[10px] font-medium text-black/45 sm:text-xs">
+                          متبقي {availableQuantity} فقط
                         </p>
                       )}
 

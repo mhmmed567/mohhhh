@@ -8,6 +8,7 @@ export type Product = {
   note: string;
   desc: string;
   stock: string;
+  quantity?: number | null;
   visible?: boolean;
 };
 
@@ -38,8 +39,17 @@ export const isProductOnSale = (product: Product) => {
 };
 
 export const isProductSoldOut = (
-  product: Pick<Product, "stock">
-) => product.stock?.trim() === "نفد المخزون";
+  product: Pick<Product, "stock" | "quantity">
+) => {
+  const quantity = getInventoryQuantity(product.quantity);
+  return quantity === 0 || product.stock?.trim() === "نفد المخزون";
+};
+
+export const getInventoryQuantity = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const quantity = Number(value);
+  return Number.isInteger(quantity) && quantity >= 0 ? quantity : null;
+};
 
 export const defaultProducts: Product[] = [];
 export const isProductComingSoon = (product: Pick<Product, "stock">) =>

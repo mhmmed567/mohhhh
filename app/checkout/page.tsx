@@ -14,7 +14,7 @@ import { db } from "@/lib/firebase";
 import { normalizeWhatsAppPhone } from "@/lib/whatsapp";
 import type { GiftDetails } from "@/lib/gifts";
 import type { DocumentSnapshot, DocumentData } from "firebase/firestore";
-import { isProductComingSoon } from "@/lib/products";
+import { getInventoryQuantity, isProductComingSoon } from "@/lib/products";
 import { CartItem, clearCart, getCart } from "@/lib/cart";
 
 type FormData = {
@@ -182,14 +182,17 @@ try {
         snapshot,
         item: items[index],
       }))
-      .filter(({ snapshot }) => {
+      .filter(({ snapshot, item }) => {
         if (!snapshot.exists()) return true;
 
         const product = snapshot.data();
+        const availableQuantity = getInventoryQuantity(product.quantity);
 
         return (
           product.visible === false ||
-          String(product.stock ?? "").trim() === "نفد المخزون"
+          String(product.stock ?? "").trim() === "نفد المخزون" ||
+          (availableQuantity !== null &&
+            availableQuantity < Number(item.quantity))
         );
       })
       .map(({ item }) => item.name);
