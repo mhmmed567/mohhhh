@@ -160,8 +160,6 @@ export function Shop({
 
                 const soldOut =
                   isProductSoldOut(product);
-                const availableQuantity =
-                  getInventoryQuantity(product.quantity);
 
                 // هل المنتج عليه عرض؟
                 const onSale =
@@ -243,12 +241,6 @@ export function Shop({
                       {product.note && (
                         <p className="mt-1 truncate text-[11px] text-black/40 sm:text-sm">
                           {product.note}
-                        </p>
-                      )}
-
-                      {availableQuantity !== null && !soldOut && (
-                        <p className="mt-1 text-[10px] font-medium text-black/45 sm:text-xs">
-                          متبقي {availableQuantity} فقط
                         </p>
                       )}
 
