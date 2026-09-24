@@ -32,7 +32,7 @@ const [loading, setLoading] = useState(true);
 const [submitting, setSubmitting] = useState(false);
 const [isGift, setIsGift] = useState(false);
 const [gift, setGift] = useState<GiftDetails>({ recipientName: "", recipientPhone: "", recipientAddress: "", message: "", hideSender: true });
-const paymentLabel = isGift ? "تحويل مسبق — التأكيد عبر واتساب المرسل" : "الدفع عند الاستلام";
+const paymentLabel = isGift ? "تحويل مسبق — التأكيد عبر واتساب المرسل" : "تحويل مسبق — التأكيد عبر واتساب";
 
 const [step, setStep] = useState<1 | 2>(1);
 
@@ -159,10 +159,10 @@ try {
     subtotal: Number(subtotal),
     total: Number(total),
 
-    paymentMethod: isGift ? "تحويل مسبق" : "الدفع عند الاستلام",
-    paymentStatus: isGift ? "بانتظار تأكيد التحويل" : "غير مدفوع",
+    paymentMethod: "تحويل مسبق",
+    paymentStatus: "بانتظار تأكيد التحويل",
 
-    status: isGift ? "بانتظار تأكيد التحويل" : "جديد",
+    status: "بانتظار التحويل",
 
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -287,7 +287,7 @@ return ( <main
 
       <p className="mt-2 text-sm text-black/45">
         {step === 1
-          ? "اختر طريقة الدفع لإكمال الطلب"
+          ? "راجع طريقة الدفع لإكمال الطلب"
           : "أدخل بياناتك لإرسال طلبك"}
       </p>
     </div>
@@ -344,7 +344,7 @@ return ( <main
             {isGift && <p className="mt-3 text-sm leading-7 text-black/70">سنتواصل معك عبر واتساب لتأكيد الطلب والتحويل. الإهداء يتطلب الدفع مسبقًا؛ المستلم لن يدفع شيئًا.</p>}
 
             <p className="mt-1 text-sm text-black/40">
-              اختر طريقة الدفع المناسبة لك
+              يصلك طلب التحويل عبر واتساب بعد إرسال الطلب
             </p>
 
             <div className="mt-7 rounded-3xl border-2 border-black bg-[#fafafa] p-5">
@@ -359,7 +359,7 @@ return ( <main
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-black/45">
-                    {isGift ? "نرسل بيانات التحويل إلى رقم المرسل فقط، ثم نجهّز الهدية بعد تأكيد وصول المبلغ." : "ادفع قيمة طلبك نقدًا عند استلام العطور."}
+                    {isGift ? "نرسل بيانات التحويل إلى رقم المرسل فقط، ثم نجهّز الهدية بعد تأكيد وصول المبلغ." : "سنرسل لك المبلغ ورقم التحويل عبر واتساب، ثم نؤكد طلبك بعد التحقق من وصول المبلغ."}
                   </p>
                 </div>
               </div>

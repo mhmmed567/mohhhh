@@ -9,15 +9,14 @@ doc,
 getDocs,
 orderBy,
 query,
-updateDoc,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 import { auth, db } from "@/lib/firebase";
 import { GiftOrderActions } from "@/components/GiftOrderActions";
 import type { GiftDetails } from "@/lib/gifts";
-import { updateOrderStatus } from "@/lib/order-status";
-import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/lib/whatsapp";
+import { OrderStatusActions } from "@/components/OrderStatusActions";
+import { getOrderStatus, normalizeOrderStatus, type OrderStatusUpdate } from "@/lib/order-workflow";
 
 type OrderItem = {
 preOrder?: boolean;
@@ -33,6 +32,7 @@ type Order = {
 isGift?: boolean;
 gift?: GiftDetails | null;
 paymentStatus?: string;
+paymentMethod?: string;
 id: string;
 userId: string;
 
@@ -57,18 +57,7 @@ nanoseconds: number;
 } | null;
 };
 
-const statuses = [
-"بانتظار تأكيد التحويل",
-"جديد",
-"قيد التجهيز",
-"تم الشحن",
-"مكتمل",
-"ملغي",
-];
 
-// غيّر هذا الرقم إلى رقم التحويل الخاص بك
-// اكتب الرقم العماني بدون +968
-const TRANSFER_PHONE = "XXXXXXXX";
 
 export default function AdminOrdersPage() {
 const router = useRouter();
@@ -79,9 +68,6 @@ const [error, setError] = useState("");
 const [selectedOrder, setSelectedOrder] =
 useState<Order | null>(null);
 
-const [updatingId, setUpdatingId] = useState<string | null>(
-null
-);
 
 useEffect(() => {
 const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -136,6 +122,7 @@ setError("");
         isGift: data.isGift === true,
         gift: data.gift ?? null,
         paymentStatus: data.paymentStatus ?? "غير مدفوع",
+        paymentMethod: data.paymentMethod,
         userId: data.userId ?? "",
         customer: {
           name: data.customer?.name ?? data.name ?? "",
@@ -170,44 +157,10 @@ setError("");
 
 };
 
-const changeStatus = async (
-orderId: string,
-status: string
-) => {
-setUpdatingId(orderId);
-
-
-try {
-  await updateOrderStatus(orderId, status);
-
-  setOrders((current) =>
-    current.map((order) =>
-      order.id === orderId
-        ? {
-            ...order,
-            status,
-          }
-        : order
-    )
-  );
-
-  setSelectedOrder((current) =>
-    current?.id === orderId
-      ? {
-          ...current,
-          status,
-        }
-      : current
-  );
-} catch (err) {
-  console.error(err);
-  window.alert(err instanceof Error ? err.message : "تعذر تحديث حالة الطلب");
-} finally {
-  setUpdatingId(null);
+function applyStatusUpdate(orderId: string, update: OrderStatusUpdate) {
+  setOrders((current) => current.map((order) => order.id === orderId ? { ...order, ...update } : order));
+  setSelectedOrder((current) => current?.id === orderId ? { ...current, ...update } : current);
 }
-
-
-};
 
 const deleteOrder = async (orderId: string) => {
 const confirmed = window.confirm(
@@ -256,72 +209,7 @@ return new Intl.DateTimeFormat("ar-OM", {
 
 };
 
-const statusClass = (status: string) => {
-switch (status) {
-case "جديد":
-return "bg-blue-50 text-blue-600";
-
-
-  case "قيد التجهيز":
-    return "bg-amber-50 text-amber-600";
-
-  case "تم الشحن":
-    return "bg-purple-50 text-purple-600";
-
-  case "مكتمل":
-    return "bg-green-50 text-green-600";
-
-  case "ملغي":
-    return "bg-red-50 text-red-600";
-
-  default:
-    return "bg-black/5 text-black/60";
-}
-
-
-};
-
-const openWhatsApp = (order: Order) => {
-if (order.isGift) return;
-const customerName =
-order.customer?.name || "عميل همار";
-
-
-setError("");
-const whatsappPhone = normalizeWhatsAppPhone(order.customer?.phone);
-
-if (!whatsappPhone) {
-  const errorMessage = "رقم العميل غير موجود أو غير صحيح. أدخل رقمًا عمانيًا من 8 أرقام أو رقمًا دوليًا مع مفتاح الدولة.";
-  setError(errorMessage);
-  window.alert(errorMessage);
-  return;
-}
-
-const message = `السلام عليكم ${customerName}
-
-
-تم استلام طلبك من همار للعطور
-
-رقم الطلب: #${order.id}
-قيمة الطلب: ${Number(order.total).toFixed(3)} ر.ع
-
-لتأكيد طلبك يرجى تحويل مبلغ الطلب على الرقم التالي:
-${92587656}
-
-وبعد التحويل أرسل لنا إيصال الدفع هنا عبر الواتساب
-
-وشكرًا لك
-همار للعطور`;
-
-
-const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const whatsappUrl = buildWhatsAppUrl(whatsappPhone, message, mobile);
-
-// Navigation in this tab works even when the browser blocks pop-up windows.
-window.location.assign(whatsappUrl);
-
-
-};
+const statusClass = (status: string) => getOrderStatus(status).className;
 
 if (loading) {
 return ( <main
@@ -391,7 +279,7 @@ HAMMAR OS </p>
         <p className="mt-2 text-3xl font-black">
           {
             orders.filter(
-              (order) => order.status === "جديد"
+              (order) => normalizeOrderStatus(order.status) === "بانتظار التحويل"
             ).length
           }
         </p>
@@ -450,7 +338,7 @@ HAMMAR OS </p>
                       order.status
                     )}`}
                   >
-                    {order.status}
+                    {getOrderStatus(order.status).label}
                   </span>
                 </div>
 
@@ -498,19 +386,6 @@ HAMMAR OS </p>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openWhatsApp(order)
-                    }
-                    style={order.isGift ? { display: "none" } : undefined}
-                    className="flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-5 py-3 text-sm font-bold text-white transition hover:scale-[1.02] hover:brightness-95"
-                  >
-                    <span className="text-base">
-                      واتساب
-                    </span>
-                    <span>↗</span>
-                  </button>
 
                   <button
                     type="button"
@@ -559,10 +434,7 @@ HAMMAR OS </p>
           </div>
 
           <div className="mt-7 rounded-3xl bg-[#f7f5f0] p-5">
-            <GiftOrderActions order={selectedOrder} onPaid={() => {
-              setSelectedOrder((current) => current ? { ...current, paymentStatus: "مدفوع" } : current);
-              loadOrders();
-            }} />
+            <GiftOrderActions order={selectedOrder} />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-black/40">
@@ -705,58 +577,7 @@ HAMMAR OS </p>
             </div>
           </div>
 
-          <div className="mt-6 rounded-3xl border border-[#25D366]/20 bg-[#25D366]/5 p-5">
-            <p className="text-sm font-bold">
-              جاهز للتواصل مع العميل؟
-            </p>
-
-            <p className="mt-1 text-xs leading-5 text-black/45">
-              سيتم فتح واتساب على رقم العميل مع رسالة
-              جاهزة تحتوي على اسمه ورقم الطلب والمبلغ
-              ورقم التحويل.
-            </p>
-
-            <button
-              type="button"
-              onClick={() =>
-                openWhatsApp(selectedOrder)
-              }
-              style={selectedOrder.isGift ? { display: "none" } : undefined}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-5 py-4 text-sm font-black text-white transition hover:brightness-95"
-            >
-              إرسال رسالة واتساب
-              <span>↗</span>
-            </button>
-          </div>
-
-          <div className="mt-6">
-            <label className="mb-2 block text-sm font-bold">
-              حالة الطلب
-            </label>
-
-            <select
-              value={selectedOrder.status}
-              onChange={(e) =>
-                changeStatus(
-                  selectedOrder.id,
-                  e.target.value
-                )
-              }
-              disabled={
-                updatingId === selectedOrder.id
-              }
-              className="w-full rounded-2xl border border-black/10 bg-[#fafafa] px-4 py-4 font-semibold outline-none focus:border-black"
-            >
-              {statuses.map((status) => (
-                <option
-                  key={status}
-                  value={status}
-                >
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
+          <OrderStatusActions order={selectedOrder} onUpdated={applyStatusUpdate} />
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button

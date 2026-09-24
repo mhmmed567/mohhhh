@@ -9,11 +9,10 @@ collection,
 getDocs,
 orderBy,
 query,
-updateDoc,
-doc,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { updateOrderStatus } from "@/lib/order-status";
+import { OrderStatusActions } from "@/components/OrderStatusActions";
+import { getOrderStatus, normalizeOrderStatus, orderStatuses, type OrderStatusUpdate } from "@/lib/order-workflow";
 import { GiftOrderActions } from "@/components/GiftOrderActions";
 import type { GiftDetails } from "@/lib/gifts";
 
@@ -46,38 +45,7 @@ status?: string;
 createdAt?: any;
 };
 
-const statuses = [
-{
-value: "pending",
-label: "قيد المراجعة",
-className: "bg-amber-50 text-amber-700 border-amber-200",
-},
-{
-value: "confirmed",
-label: "تم التأكيد",
-className: "bg-blue-50 text-blue-700 border-blue-200",
-},
-{
-value: "processing",
-label: "جاري التجهيز",
-className: "bg-purple-50 text-purple-700 border-purple-200",
-},
-{
-value: "shipped",
-label: "تم الشحن",
-className: "bg-indigo-50 text-indigo-700 border-indigo-200",
-},
-{
-value: "delivered",
-label: "تم التوصيل",
-className: "bg-emerald-50 text-emerald-700 border-emerald-200",
-},
-{
-value: "cancelled",
-label: "ملغي",
-className: "bg-red-50 text-red-700 border-red-200",
-},
-];
+const statuses = orderStatuses;
 
 export default function AdminPage() {
 const router = useRouter();
@@ -86,7 +54,6 @@ const [user, setUser] = useState<User | null>(null);
 const [orders, setOrders] = useState<Order[]>([]);
 const [loading, setLoading] = useState(true);
 const [refreshing, setRefreshing] = useState(false);
-const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
 
 const [search, setSearch] = useState("");
 const [filterStatus, setFilterStatus] = useState("all");
@@ -152,28 +119,8 @@ setRefreshing(true);
 
 }
 
-async function changeStatus(orderId: string, newStatus: string) {
-try {
-setUpdatingOrder(orderId);
-
-
-  await updateOrderStatus(orderId, newStatus);
-
-  setOrders((currentOrders) =>
-    currentOrders.map((order) =>
-      order.id === orderId
-        ? { ...order, status: newStatus }
-        : order
-    )
-  );
-} catch (error) {
-  console.error("Error updating order:", error);
-  alert(error instanceof Error ? error.message : "حدث خطأ أثناء تحديث حالة الطلب");
-} finally {
-  setUpdatingOrder(null);
-}
-
-
+function applyStatusUpdate(orderId: string, update: OrderStatusUpdate) {
+  setOrders((current) => current.map((order) => order.id === orderId ? { ...order, ...update } : order));
 }
 
 async function handleLogout() {
@@ -185,12 +132,7 @@ console.error("Logout error:", error);
 }
 }
 
-function getStatus(status?: string) {
-return (
-statuses.find((item) => item.value === status) ||
-statuses[0]
-);
-}
+const getStatus = getOrderStatus;
 
 function formatDate(createdAt: any) {
 if (!createdAt) return "غير محدد";
@@ -219,14 +161,14 @@ const searchText = search.toLowerCase().trim();
 
   const matchesSearch =
     !searchText ||
-    order.customerName?.toLowerCase().includes(searchText) ||
+    (order.customer?.name || order.customerName)?.toLowerCase().includes(searchText) ||
     order.customerEmail?.toLowerCase().includes(searchText) ||
-    order.phone?.includes(searchText) ||
+    (order.customer?.phone || order.phone)?.includes(searchText) ||
     order.id.toLowerCase().includes(searchText);
 
   const matchesStatus =
     filterStatus === "all" ||
-    order.status === filterStatus;
+    normalizeOrderStatus(order.status) === filterStatus;
 
   return matchesSearch && matchesStatus;
 });
@@ -239,26 +181,26 @@ const totalOrders = orders.length;
 
 
 const pendingOrders = orders.filter(
-  (order) => order.status === "pending"
+  (order) => normalizeOrderStatus(order.status) === "بانتظار التحويل"
 ).length;
 
 const deliveredOrders = orders.filter(
-  (order) => order.status === "delivered"
+  (order) => normalizeOrderStatus(order.status) === "تم التسليم"
 ).length;
 
 const cancelledOrders = orders.filter(
-  (order) => order.status === "cancelled"
+  (order) => normalizeOrderStatus(order.status) === "ملغي"
 ).length;
 
 const totalSales = orders
-  .filter((order) => order.status !== "cancelled")
+  .filter((order) => !["ملغي", "استرجاع الطلب"].includes(normalizeOrderStatus(order.status)))
   .reduce(
     (sum, order) => sum + Number(order.total || 0),
     0
   );
 
 const paidOrders = orders.filter(
-  (order) => order.status !== "cancelled"
+  (order) => !["ملغي", "استرجاع الطلب"].includes(normalizeOrderStatus(order.status))
 ).length;
 
 const averageOrder =
@@ -289,7 +231,6 @@ return ( <main
      className="flex min-h-screen items-center justify-center bg-[#f5f4ef]"
    > <div className="text-center"> <div className="mx-auto mb-5 h-11 w-11 animate-spin rounded-full border-4 border-black/10 border-t-black" />
 
-```
       <p className="text-sm text-gray-500">
         جاري تحميل لوحة التحكم...
       </p>
@@ -433,7 +374,7 @@ return ( <main
       <div className="rounded-[1.7rem] border border-black/10 bg-white p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between">
           <span className="text-sm text-gray-500">
-            قيد المراجعة
+            بانتظار التحويل
           </span>
 
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-lg">
@@ -453,7 +394,7 @@ return ( <main
       <div className="rounded-[1.7rem] border border-black/10 bg-white p-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between">
           <span className="text-sm text-gray-500">
-            تم التوصيل
+            تم التسليم
           </span>
 
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-lg text-emerald-700">
@@ -664,7 +605,7 @@ return ( <main
                 className="overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm"
               >
                 <div className="p-5 md:p-8">
-                  <GiftOrderActions order={order} onPaid={loadOrders} />
+                  <GiftOrderActions order={order} />
                   {/* ORDER HEADER */}
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div>
@@ -679,7 +620,7 @@ return ( <main
                       </div>
 
                       <h3 className="mt-4 text-xl font-bold">
-                        {order.customerName || "عميل"}
+                        {order.customer?.name || order.customerName || "عميل"}
                       </h3>
 
                       <div className="mt-2 space-y-1 text-sm text-gray-500">
@@ -689,7 +630,7 @@ return ( <main
                         </p>
 
                         <p>
-                          {order.phone ||
+                          {order.customer?.phone || order.phone ||
                             "بدون رقم هاتف"}
                         </p>
 
@@ -709,37 +650,14 @@ return ( <main
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-3 lg:items-end">
+                    <div className="flex w-full min-w-0 flex-col gap-3 lg:max-w-md lg:items-end">
                       <span
                         className={`w-fit rounded-full border px-4 py-2 text-xs font-semibold ${status.className}`}
                       >
                         {status.label}
                       </span>
 
-                      <select
-                        value={
-                          order.status || "pending"
-                        }
-                        disabled={
-                          updatingOrder === order.id
-                        }
-                        onChange={(event) =>
-                          changeStatus(
-                            order.id,
-                            event.target.value
-                          )
-                        }
-                        className="h-11 rounded-xl border border-black/10 bg-[#f7f6f2] px-4 text-sm outline-none focus:border-black disabled:opacity-50"
-                      >
-                        {statuses.map((item) => (
-                          <option
-                            key={item.value}
-                            value={item.value}
-                          >
-                            {item.label}
-                          </option>
-                        ))}
-                      </select>
+                      <OrderStatusActions order={order} onUpdated={applyStatusUpdate} />
                     </div>
                   </div>
 

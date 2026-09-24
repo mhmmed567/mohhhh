@@ -15,8 +15,3 @@ export function giftDeliveryMessage(gift: GiftDetails, senderName: string) {
     "بعض المشاعر تُهدى ✨",
   ].filter(Boolean).join("\n\n");
 }
-
-export function giftStatusAllowed(isGift: boolean, paymentStatus: string, status: string) {
-  return !isGift || paymentStatus === "مدفوع" ||
-    ["جديد", "pending", "قيد المراجعة", "بانتظار تأكيد التحويل", "ملغي", "cancelled"].includes(status);
-}
