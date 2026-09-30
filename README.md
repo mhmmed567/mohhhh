@@ -14,9 +14,9 @@ npm run dev
 ## الظهور في بحث Google
 
 - يوفّر الموقع `/robots.txt` للسماح بالزحف، و`/sitemap.xml` للصفحات العامة: الرئيسية، القصة، والعروض.
-- اضبط متغير البيئة `SITE_URL` على رابط الموقع الأساسي المنشور، مثل `https://example.com`. هذا يجعل روابط الخريطة ووسوم canonical تشير إلى نطاق واحد حتى عند زيارة رابط معاينة أو نطاق بديل. عند عدم ضبطه يستخدم الموقع نطاق الطلب الحالي.
+- النطاق الأساسي مضبوط على `https://hammar1.shop`. إذا تغيّر النطاق لاحقًا، يمكن ضبط متغير البيئة `SITE_URL` على الرابط الجديد؛ هذا يجعل روابط الخريطة ووسوم canonical تشير إلى نطاق واحد حتى عند زيارة رابط معاينة أو نطاق بديل.
 - إذا اخترت إثبات ملكية Google Search Console بوسم HTML، اضبط `GOOGLE_SITE_VERIFICATION` على قيمة `content` التي يعطيك إياها Google، ثم أعد نشر الموقع. يمكن استخدام إثبات الملكية عبر DNS بدلًا من ذلك.
-- بعد النشر، أضف النطاق إلى [Google Search Console](https://search.google.com/search-console)، ثم أرسل `https://your-domain/sitemap.xml` من قسم **Sitemaps** واطلب فهرسة الصفحة الرئيسية من **URL Inspection**.
+- بعد النشر، أضف النطاق إلى [Google Search Console](https://search.google.com/search-console)، ثم أرسل `https://hammar1.shop/sitemap.xml` من قسم **Sitemaps** واطلب فهرسة الصفحة الرئيسية من **URL Inspection**.
 - صفحات الحساب والسلة وإتمام الشراء والطلبات وتسجيل الدخول والإدارة ترسل `X-Robots-Tag: noindex, nofollow`، لذلك لا تُدرج في خريطة الموقع.
 
 إضافة خريطة الموقع وإرسالها تساعد Google على اكتشاف الصفحات، لكنها لا تضمن ظهورها فورًا في النتائج.
