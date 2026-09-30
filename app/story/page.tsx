@@ -6,6 +6,12 @@ import { Footer } from "@/components/Footer";
 export const metadata: Metadata = {
   title: "قصتنا | همّار",
   description: "تعرّف على عالم همّار؛ العطر كتعبير عن الذوق والحضور والذكريات.",
+  alternates: { canonical: "/story" },
+  openGraph: {
+    title: "قصتنا | همّار",
+    description: "تعرّف على عالم همّار؛ العطر كتعبير عن الذوق والحضور والذكريات.",
+    url: "/story",
+  },
 };
 
 const values = [

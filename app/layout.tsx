@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Amiri, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const amiri = Amiri({
@@ -17,10 +18,29 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "همار | HAMMAR Perfumes",
-  description: "همار — عطور فاخرة، فخامة صامتة تبقى بعد خروجك من الغرفة.",
-};
+export function generateMetadata(): Metadata {
+  const siteUrl = getSiteUrl();
+  const title = "همار للعطور | HAMMAR Perfumes";
+  const description = "اكتشف عطور همار في سلطنة عمان، عطور مختارة بعناية لحضور يترك أثرًا لا يُنسى.";
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title,
+    description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      locale: "ar_OM",
+      siteName: "همار للعطور",
+      title,
+      description,
+      url: siteUrl,
+    },
+    verification: process.env.GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+      : undefined,
+  };
+}
 
 export default function RootLayout({
   children,
