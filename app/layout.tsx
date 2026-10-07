@@ -49,11 +49,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl" className={`${amiri.variable} ${plexArabic.variable}`}>
-      <head>
-        <script src="https://js.stripe.com/dahlia/stripe.js" async />
-      </head>
       <body className="font-body font-light antialiased">{children}</body>
     </html>
   );
 }
-
