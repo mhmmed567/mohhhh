@@ -2,7 +2,10 @@
 
 import { useEffect, useId, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { almRequest } from "@/lib/alm-client";
+import { almGiftMessage, almOrderEligible, type AlmAllocation, type AlmVoucher } from "@/lib/alm-rewards";
 import { updateOrderStatus } from "@/lib/order-status";
 import { buildWhatsAppUrl, normalizeWhatsAppPhone } from "@/lib/whatsapp";
 import { buildOrderMessage, getOrderStatus, isOrderStatus, normalizeOrderStatus, orderStatuses, type MessageSettings, type OrderStatusUpdate, type WorkflowOrder } from "@/lib/order-workflow";
@@ -11,6 +14,17 @@ export function OrderStatusActions({ order, onUpdated }: {
   order: WorkflowOrder;
   onUpdated: (id: string, update: OrderStatusUpdate) => void;
 }) {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [reward, setReward] = useState<AlmVoucher | null>(null);
+  const [rewardWarning, setRewardWarning] = useState("");
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      try { const token = await user?.getIdTokenResult(); if (active) setIsAdmin(token?.claims.role === "admin"); }
+      catch { if (active) setIsAdmin(false); }
+    });
+    return () => { active = false; unsubscribe(); };
+  }, []);
   const id = useId();
   const savedStatus = normalizeOrderStatus(order.status);
   const [draftStatus, setDraftStatus] = useState(savedStatus);
@@ -20,7 +34,7 @@ export function OrderStatusActions({ order, onUpdated }: {
   const [notice, setNotice] = useState("");
   const [preview, setPreview] = useState<{ text: string; url: string } | null>(null);
   useEffect(() => {
-    setDraftStatus(savedStatus); setConfirmed(false); setPreview(null); setError("");
+    setDraftStatus(savedStatus); setConfirmed(false); setPreview(null); setError(""); setReward(null); setRewardWarning("");
   }, [order.id, savedStatus, order.paymentStatus]);
 
   async function save() {
@@ -34,7 +48,7 @@ export function OrderStatusActions({ order, onUpdated }: {
   }
 
   async function showMessage() {
-    setBusy(true); setError(""); setPreview(null);
+    setBusy(true); setError(""); setPreview(null); setRewardWarning("");
     try {
       const orderSnapshot = await getDoc(doc(db, "orders", order.id));
       if (!orderSnapshot.exists()) throw new Error("الطلب غير موجود. حدّث قائمة الطلبات.");
@@ -49,9 +63,39 @@ export function OrderStatusActions({ order, onUpdated }: {
         const snapshot = await getDoc(doc(db, "settings", "store"));
         settings = snapshot.exists() ? snapshot.data() as MessageSettings : {};
       }
-      const text = buildOrderMessage(current, settings);
+      let text = buildOrderMessage(current, settings);
+      if (almOrderEligible(current) && auth.currentUser) {
+        const token = await auth.currentUser.getIdTokenResult();
+        if (token.claims.role === "admin") {
+          try {
+            const allocation = await almRequest<AlmAllocation>("/allocate", { orderId: current.id, mode: "auto" });
+            setReward(allocation.voucher);
+            if (allocation.voucher?.status === "ready") text += almGiftMessage(allocation.voucher, window.location.origin);
+          } catch {
+            setRewardWarning("تعذر التحقق من هدية ALM. جُهزت رسالة الطلب فقط؛ أعد المعاينة للتحقق من الهدية قبل الإرسال.");
+          }
+        }
+      }
       setPreview({ text, url: buildWhatsAppUrl(phone, text, /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) });
     } catch (err) { setError(err instanceof Error ? err.message : "تعذر تجهيز الرسالة. تحقق من إعدادات المتجر."); }
+    finally { setBusy(false); }
+  }
+
+  async function grantReward() {
+    setBusy(true); setError(""); setNotice(""); setPreview(null); setRewardWarning("");
+    try {
+      const result = await almRequest<AlmAllocation>("/allocate", { orderId: order.id, mode: "manual" });
+      if (!result.voucher) {
+        const messages: Record<string, string> = {
+          disabled: "خدمة هدايا ALM لم تُفعّل بعد.",
+          unpaid: "أكد وصول التحويل أولًا.", closed: "الطلب ملغي أو مسترجع.",
+          duplicate_customer: "حصل هذا العميل على هدية من قبل.", limit_reached: "اكتمل عدد الهدايا المحدد للحملة.",
+        };
+        throw new Error(messages[result.reason || ""] || "تعذر منح الهدية.");
+      }
+      setReward(result.voucher);
+      setNotice("هدية ALM مسجلة لهذا الطلب. أعد معاينة رسالة الحالة لإرفاق رابط QR.");
+    } catch (err) { setError(err instanceof Error ? err.message : "تعذر منح الهدية."); }
     finally { setBusy(false); }
   }
 
@@ -70,8 +114,14 @@ export function OrderStatusActions({ order, onUpdated }: {
       <button type="button" disabled={busy || draftStatus !== savedStatus} onClick={showMessage} className="min-h-11 rounded-xl border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-40">معاينة {getOrderStatus(savedStatus).messageLabel}{order.isGift ? " — للمرسل" : ""}</button>
       {draftStatus !== savedStatus && <p className="text-xs text-black/60">احفظ الحالة أولًا لتجهيز رسالتها.</p>}
       {preview && <div className="space-y-3 border-t border-black/10 pt-3"><p className="whitespace-pre-wrap break-words text-sm leading-7">{preview.text}</p><a href={preview.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">فتح الرسالة في واتساب ↗</a><p className="text-xs text-black/60">راجع الرسالة وأرسلها من واتساب.</p></div>}
+      {isAdmin && almOrderEligible(order) && <div className="border-t border-black/10 pt-4">
+        <button type="button" disabled={busy || draftStatus !== savedStatus} onClick={grantReward} className="min-h-11 rounded-xl border border-[#642B36]/25 bg-[#f4ece2] px-4 py-2 text-sm text-[#642B36] disabled:opacity-40">منح هدية ALM لهذا الطلب</button>
+        {reward && <p className="mt-3 text-xs leading-7 text-[#642B36]">{reward.status === "used" ? "تم استخدام هدية هذا الطلب سابقًا." : "هدية ALM جاهزة لهذا الطلب."} <a href={"/alm/gift/" + reward.token} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">عرض QR</a></p>}
+      </div>}
+      {rewardWarning && <p role="alert" className="text-xs leading-7 text-amber-800">{rewardWarning}</p>}
       {notice && <p role="status" className="text-sm text-emerald-800">{notice}</p>}
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     </section>
   );
 }
+
