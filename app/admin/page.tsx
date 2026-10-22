@@ -461,6 +461,12 @@ return ( <main
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Link href="/admin/alm" className="group rounded-[1.7rem] border border-black/10 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-black/20">
+          <div dir="ltr" className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#642B36] text-xs font-semibold text-white">ALM</div>
+          <h3 className="font-bold">هدايا كوفي ALM</h3>
+          <p className="mt-2 text-sm leading-6 text-gray-500">اختيار المستفيدين، إرسال QR، وتسجيل صرف الهدايا</p>
+          <div className="mt-5 text-sm font-semibold">إدارة الهدايا ←</div>
+        </Link>
         <Link
           href="/admin/products"
           className="group rounded-[1.7rem] border border-black/10 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-black/20"
@@ -808,3 +814,4 @@ return ( <main
 
 );
 }
+

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { safeAlmReturnPath } from "@/lib/alm-rewards";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -37,7 +38,8 @@ export default function LoginPage() {
       const role = token.claims.role;
 
       if (role === "admin") {
-        router.push("/admin");
+        const next = safeAlmReturnPath(new URLSearchParams(window.location.search).get("next"));
+        router.push(next || "/admin");
       } else if (role === "staff") {
         router.push("/admin/orders");
       } else {
@@ -218,3 +220,4 @@ export default function LoginPage() {
     </main>
   );
 }
+

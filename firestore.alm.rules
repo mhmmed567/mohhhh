@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // All operations go through Next.js APIs with verified Firebase Admin roles.
+    // Apply ONLY to the private alm-rewards database, never the storefront.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

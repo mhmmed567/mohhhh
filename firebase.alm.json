@@ -1,0 +1,5 @@
+{
+  "firestore": [
+    { "database": "alm-rewards", "rules": "firestore.alm.rules" }
+  ]
+}
